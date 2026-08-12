@@ -1,0 +1,79 @@
+[
+  {
+    "id": "figurecc",
+    "name": "FigureCC",
+    "icon": "🎨",
+    "type": "external",
+    "url": "https://figurecc.cine-softwares.workers.dev/"
+  },
+  {
+    "id": "onlyixl",
+    "name": "OnlyIXL",
+    "icon": "📚",
+    "type": "external",
+    "url": "https://onlyixl.lamuelixlfestus.site/"
+  },
+  {
+    "id": "outoflearning",
+    "name": "OutOfLearning",
+    "icon": "🚀",
+    "type": "external",
+    "url": "https://outoflearning.b-cdn.net/"
+  },
+  {
+    "id": "mathghost",
+    "name": "MathGhost",
+    "icon": "🧮",
+    "type": "external",
+    "url": "https://math.ghostos.workers.dev/"
+  },
+  {
+    "id": "logosvg",
+    "name": "LogoSVG",
+    "icon": "🖌️",
+    "type": "external",
+    "url": "https://cdn.jsdelivr.net/gh/lucideproxy/svg@latest/logo.svg#/"
+  },
+  {
+    "id": "fluxlight",
+    "name": "FluxLight",
+    "icon": "💡",
+    "type": "external",
+    "url": "https://flux-lightlink-c18d8596ed67.herokuapp.com/index.html"
+  },
+  {
+    "id": "ps279",
+    "name": "PS279",
+    "icon": "🏫",
+    "type": "external",
+    "url": "https://ps279.org/"
+  },
+  {
+    "id": "syriac",
+    "name": "SyriacCatholic",
+    "icon": "⛪",
+    "type": "external",
+    "url": "https://syriac-catholic.org/"
+  },
+  {
+    "id": "kuba",
+    "name": "Kuba",
+    "icon": "🔥",
+    "type": "external",
+    "url": "https://kuba.fireyh8.workers.dev/"
+  },
+  {
+    "id": "exotictest",
+    "name": "ExoticTest",
+    "icon": "🧪",
+    "type": "external",
+    "url": "https://un1nq1w.exotic-test.kesug.com/"
+  },
+  {
+    "id": "cineby",
+    "name": "Cineby",
+    "icon": "🎬",
+    "type": "external",
+    "url": "https://www.cineby.at/"
+  }
+]
