@@ -38,6 +38,7 @@
         #context-menu .menu-item { padding:8px 20px; color:#eee; cursor:pointer; display:flex; align-items:center; gap:10px; font-size:14px; transition:0.1s; border:none; background:none; width:100%; text-align:left; }
         #context-menu .menu-item:hover { background:rgba(255,255,255,0.08); }
         #context-menu .menu-item.danger { color:#e50914; }
+        #context-menu .menu-item.disabled { opacity:0.5; pointer-events:none; }
         #context-menu .menu-divider { height:1px; background:var(--glass-border); margin:4px 12px; }
 
         .os-window { position:absolute; min-width:360px; min-height:220px; background:rgba(20,20,40,0.88); backdrop-filter:blur(30px); border-radius:var(--radius); border:1px solid var(--glass-border); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; z-index:100; animation:winIn 0.25s cubic-bezier(0.2,0.9,0.3,1.1); resize:both; }
@@ -77,6 +78,7 @@
         #start-menu .start-item img { width:26px; height:26px; border-radius:6px; }
         #start-menu .start-item span { font-size:26px; }
 
+        /* ----- INTERNAL APP STYLES (common) ----- */
         .calc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
         .calc-grid button { background:rgba(255,255,255,0.06); border:none; color:#fff; font-size:24px; padding:14px 0; border-radius:12px; cursor:pointer; transition:0.08s; }
         .calc-grid button:hover { background:rgba(255,255,255,0.15); }
@@ -153,21 +155,24 @@
         .store-item .action-btn.danger { background:#c42b2b; }
         .store-item .action-btn.danger:hover { background:#e54b4b; }
 
-        .messages-container { display:flex; flex-direction:column; height:100%; gap:8px; }
-        .messages-header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--glass-border); padding-bottom:6px; }
-        .messages-header .profile-info { display:flex; align-items:center; gap:8px; }
-        .messages-header .profile-info .avatar { font-size:32px; }
-        .messages-header .profile-info .name { font-weight:600; }
-        .messages-header .status { color:#8aff8a; font-size:12px; }
-        .messages-header .friend-list { display:flex; gap:6px; flex-wrap:wrap; }
-        .messages-header .friend-list .friend-chip { background:rgba(255,255,255,0.06); padding:2px 12px; border-radius:30px; font-size:12px; display:flex; align-items:center; gap:4px; }
-        .messages-header .friend-list .friend-chip .online { color:#8aff8a; }
-        .messages-header .friend-list .friend-chip .offline { color:#888; }
+        .messages-container { display:flex; flex-direction:row; height:100%; gap:0; background:rgba(0,0,0,0.2); border-radius:8px; overflow:hidden; }
+        .messages-sidebar { width:180px; background:rgba(0,0,0,0.3); padding:12px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; overflow-y:auto; border-right:1px solid var(--glass-border); }
+        .messages-sidebar .profile-card { text-align:center; padding-bottom:8px; border-bottom:1px solid var(--glass-border); }
+        .messages-sidebar .profile-card .avatar { font-size:40px; }
+        .messages-sidebar .profile-card .name { font-weight:600; margin-top:4px; }
+        .messages-sidebar .profile-card .status { color:#8aff8a; font-size:12px; }
+        .messages-sidebar .friend-list-title { font-weight:600; color:#aaa; font-size:13px; margin-top:8px; }
+        .messages-sidebar .friend-list { display:flex; flex-direction:column; gap:4px; }
+        .messages-sidebar .friend-list .friend-item { display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:6px; cursor:pointer; transition:0.1s; }
+        .messages-sidebar .friend-list .friend-item:hover { background:rgba(255,255,255,0.06); }
+        .messages-sidebar .friend-list .friend-item .online { color:#8aff8a; }
+        .messages-sidebar .friend-list .friend-item .offline { color:#888; }
+        .messages-chat-area { flex:1; display:flex; flex-direction:column; padding:8px; min-width:0; }
         .messages-chat { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding:4px 0; }
         .messages-chat .msg { padding:4px 10px; background:rgba(255,255,255,0.04); border-radius:8px; display:flex; align-items:center; gap:8px; }
         .messages-chat .msg .sender { font-weight:600; color:var(--accent); }
-        .messages-chat .msg .content { color:#ddd; }
-        .messages-chat .msg .time { color:#888; font-size:11px; margin-left:auto; }
+        .messages-chat .msg .content { color:#ddd; word-wrap:break-word; }
+        .messages-chat .msg .time { color:#888; font-size:11px; margin-left:auto; white-space:nowrap; }
         .messages-input { display:flex; gap:6px; border-top:1px solid var(--glass-border); padding-top:6px; }
         .messages-input input { flex:1; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:30px; padding:6px 16px; color:#fff; font-size:14px; }
         .messages-input input:focus { outline:none; border-color:var(--accent); }
@@ -179,10 +184,6 @@
         .update-log .entry .version { font-weight:600; color:var(--accent); }
         .update-log .entry .date { color:#888; font-size:12px; float:right; }
         .update-log .entry .desc { color:#ddd; margin-top:4px; }
-        .update-log .add-entry { display:flex; gap:6px; flex-wrap:wrap; border-top:1px solid var(--glass-border); padding-top:6px; }
-        .update-log .add-entry input { background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:30px; padding:6px 16px; color:#fff; font-size:14px; }
-        .update-log .add-entry input:focus { outline:none; border-color:var(--accent); }
-        .update-log .add-entry button { background:var(--accent); border:none; color:#fff; padding:6px 20px; border-radius:30px; cursor:pointer; }
 
         .custom-app-form { background:rgba(0,0,0,0.5); border-radius:var(--radius); padding:20px; display:flex; flex-direction:column; gap:12px; max-width:500px; margin:auto; width:100%; }
         .custom-app-form input, .custom-app-form select, .custom-app-form textarea { background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:30px; padding:8px 16px; color:#fff; font-size:14px; width:100%; }
@@ -205,6 +206,7 @@
             #start-menu { width:calc(100% - 32px); left:16px; }
             .os-window { width:92% !important; left:4% !important; min-width:unset; }
             .settings-row { flex-direction:column; align-items:flex-start; }
+            .messages-sidebar { width:120px; }
         }
     </style>
 </head>
@@ -219,7 +221,7 @@
         <button class="menu-item danger" data-action="delete">🗑️ Delete</button>
         <div class="menu-divider"></div>
         <button class="menu-item" data-action="add">➕ Add new app</button>
-        <button class="menu-item" data-action="publish">📤 Publish to Store</button>
+        <button class="menu-item" data-action="publish" id="publishMenuItem">📤 Publish to Store</button>
     </div>
     <div id="start-menu"></div>
     <div id="taskbar">
@@ -257,7 +259,7 @@
                 { id: 'xcloud', name: 'Xbox Cloud Gaming', icon: '🟢', type: 'internal', internal: 'xcloud' }
             ];
 
-            // ---------- FALLBACK EXTERNAL APPS (embedded so no apps.json needed) ----------
+            // ---------- FALLBACK EXTERNAL APPS ----------
             const FALLBACK_APPS = [
                 { id: 'figurecc', name: 'FigureCC', icon: '🎨', type: 'external', url: 'https://figurecc.cine-softwares.workers.dev/' },
                 { id: 'onlyixl', name: 'OnlyIXL', icon: '📚', type: 'external', url: 'https://onlyixl.lamuelixlfestus.site/' },
@@ -290,6 +292,7 @@
             const clockEl = document.getElementById('clock');
             const toastContainer = document.getElementById('toastContainer');
             const contextMenu = document.getElementById('context-menu');
+            const publishMenuItem = document.getElementById('publishMenuItem');
 
             const STORAGE_ORDER = 'aether_order';
             const STORAGE_WALL = 'aether_wall';
@@ -299,15 +302,12 @@
             const STORAGE_RECYCLE = 'aether_recycle_bin';
             const STORAGE_PROFILES = 'aether_profiles';
             const STORAGE_MESSAGES = 'aether_messages';
-            const STORAGE_FRIENDS = 'aether_friends';
             const STORAGE_CURRENT_USER = 'aether_current_user';
             const STORAGE_PUBLISHED = 'aether_published_apps';
-            const STORAGE_UPDATES = 'aether_updates';
 
             // ---------- LOAD / SAVE ----------
             function loadAllApps() {
                 let base = BUILTIN_APPS.slice();
-                // Add fallback external apps (they will be overridden by apps.json if loaded)
                 FALLBACK_APPS.forEach(app => {
                     if (!base.find(a => a.id === app.id)) base.push(app);
                 });
@@ -368,20 +368,42 @@
                 localStorage.setItem(STORAGE_PUBLISHED, JSON.stringify(list));
             }
 
+            // Only custom apps (not built-in or fallback) can be published
+            function isCustomApp(app) {
+                return !BUILTIN_APPS.some(b => b.id === app.id) && !FALLBACK_APPS.some(b => b.id === app.id);
+            }
+
             function publishApp(appId) {
                 const app = getAppById(appId);
                 if (!app) { showToast('Error', 'App not found'); return; }
+                if (!isCustomApp(app)) {
+                    showToast('Error', 'Only custom apps can be published');
+                    return;
+                }
                 const published = getPublishedApps();
                 if (published.find(a => a.id === appId)) {
                     showToast('Info', 'App already published');
                     return;
                 }
-                const pub = { ...app };
-                pub.publishedBy = currentUser ? currentUser.name : 'Anonymous';
-                pub.publishedDate = new Date().toISOString();
+                // Ask user to optionally edit name/icon/url before publishing
+                const newName = prompt('Edit app name (or keep as is):', app.name);
+                if (newName === null) return;
+                const newIcon = prompt('Edit icon (emoji or URL):', app.icon);
+                if (newIcon === null) return;
+                const newUrl = prompt('Edit URL (for web apps):', app.url || '');
+                if (newUrl === null) return;
+
+                const pub = {
+                    ...app,
+                    name: newName.trim() || app.name,
+                    icon: newIcon.trim() || app.icon,
+                    url: newUrl.trim() || app.url || '',
+                    publishedBy: currentUser ? currentUser.name : 'Anonymous',
+                    publishedDate: new Date().toISOString()
+                };
                 published.push(pub);
                 savePublishedApps(published);
-                showToast('Published', `${app.name} is now in the Community Store!`);
+                showToast('Published', `${pub.name} is now in the Community Store!`);
             }
 
             // ---------- USER PROFILES ----------
@@ -477,25 +499,6 @@
                 if (window.bc) window.bc.postMessage({ type: 'newMessage', messages });
             }
 
-            // ---------- UPDATE LOG ----------
-            function getUpdates() {
-                const data = localStorage.getItem(STORAGE_UPDATES);
-                if (data) {
-                    try { return JSON.parse(data); } catch (_) {}
-                }
-                return [];
-            }
-
-            function saveUpdates(updates) {
-                localStorage.setItem(STORAGE_UPDATES, JSON.stringify(updates));
-            }
-
-            function addUpdate(version, description) {
-                const updates = getUpdates();
-                updates.push({ version, description, date: new Date().toLocaleDateString() });
-                saveUpdates(updates);
-            }
-
             // ---------- EXTERNAL APP LOADER ----------
             async function loadExternalAppLinks(url) {
                 try {
@@ -572,8 +575,16 @@
             function showContextMenu(e, appId) {
                 e.preventDefault();
                 contextTargetId = appId;
+                const app = getAppById(appId);
                 const menu = contextMenu;
                 menu.style.display = 'flex';
+                // Enable/disable publish based on custom app
+                const publishItem = menu.querySelector('[data-action="publish"]');
+                if (app && isCustomApp(app)) {
+                    publishItem.classList.remove('disabled');
+                } else {
+                    publishItem.classList.add('disabled');
+                }
                 let x = e.clientX,
                     y = e.clientY;
                 const rect = menu.getBoundingClientRect();
@@ -1847,8 +1858,9 @@
                 setTimeout(() => loadUrl('https://duckduckgo.com'), 400);
             }
 
-            // ---------- TERMINAL (with enhanced commands) ----------
+            // ---------- TERMINAL (unchanged - full featured) ----------
             function renderTerminal(c) {
+                // Virtual file system
                 const vfs = {
                     '/': { type: 'dir', children: {
                             'home': { type: 'dir', children: {} },
@@ -2280,6 +2292,101 @@
                             grid.appendChild(item);
                         });
                     } else if (currentTab === 'customs') {
+                        // Add "Import JSON" button at the top
+                        const importBtn = document.createElement('button');
+                        importBtn.textContent = '📥 Import JSON';
+                        importBtn.style.cssText =
+                            'background:var(--accent);border:none;color:#fff;padding:6px 16px;border-radius:30px;cursor:pointer;margin-bottom:8px;align-self:flex-start;';
+                        importBtn.addEventListener('click', () => {
+                            // Open a window to paste JSON
+                            const win = document.createElement('div');
+                            win.className = 'os-window';
+                            win.style.zIndex = ++zCounter;
+                            win.style.width = '480px';
+                            win.style.height = '320px';
+                            win.style.left = '150px';
+                            win.style.top = '100px';
+                            const titleBar = document.createElement('div');
+                            titleBar.className = 'title-bar';
+                            titleBar.innerHTML = `
+                                <div class="win-title">📥 Import JSON Apps</div>
+                                <div class="win-controls"><button class="close-btn">✕</button></div>
+                            `;
+                            win.appendChild(titleBar);
+                            const content = document.createElement('div');
+                            content.className = 'win-content';
+                            content.style.display = 'flex';
+                            content.style.alignItems = 'center';
+                            content.style.justifyContent = 'center';
+                            const form = document.createElement('div');
+                            form.className = 'custom-app-form';
+                            form.innerHTML = `
+                                <textarea id="jsonImportArea" placeholder='[{"id":"myapp","name":"My App","icon":"🚀","type":"external","url":"https://..."}]' style="min-height:120px;"></textarea>
+                                <button id="importJsonSubmit">Import</button>
+                            `;
+                            content.appendChild(form);
+                            win.appendChild(content);
+                            desktop.appendChild(win);
+                            titleBar.querySelector('.close-btn').addEventListener('click', () => {
+                                win.remove();
+                            });
+                            form.querySelector('#importJsonSubmit').addEventListener('click', () => {
+                                const json = form.querySelector('#jsonImportArea').value.trim();
+                                if (!json) { showToast('Error', 'Paste JSON array'); return; }
+                                try {
+                                    const data = JSON.parse(json);
+                                    if (!Array.isArray(data)) throw new Error('Not an array');
+                                    let added = 0;
+                                    data.forEach(app => {
+                                        if (!app.id) app.id = 'custom_' + Date.now() + '_' + Math
+                                        .random().toString(36).substr(2, 6);
+                                        if (!app.type) app.type = 'external';
+                                        if (!getAppById(app.id)) {
+                                            allApps.push(app);
+                                            appOrder.push(app.id);
+                                            added++;
+                                        }
+                                    });
+                                    if (added > 0) {
+                                        saveAllApps();
+                                        renderIcons();
+                                        buildStartMenu();
+                                        showToast('Import', `Added ${added} apps`);
+                                        win.remove();
+                                        renderStore(); // Refresh Customs tab
+                                    } else {
+                                        showToast('Info', 'No new apps to import');
+                                    }
+                                } catch (err) {
+                                    showToast('Error', 'Invalid JSON: ' + err.message);
+                                }
+                            });
+                            // Drag
+                            let drag = false,
+                                ox, oy;
+                            titleBar.addEventListener('mousedown', (e) => {
+                                if (e.target.tagName === 'BUTTON') return;
+                                drag = true;
+                                const rect = win.getBoundingClientRect();
+                                ox = e.clientX - rect.left;
+                                oy = e.clientY - rect.top;
+                                win.style.zIndex = ++zCounter;
+                                e.preventDefault();
+                            });
+                            document.addEventListener('mousemove', (e) => {
+                                if (!drag) return;
+                                let left = e.clientX - ox,
+                                    top = e.clientY - oy;
+                                left = Math.max(0, Math.min(left, window.innerWidth - 60));
+                                top = Math.max(0, Math.min(top, window.innerHeight - 100));
+                                win.style.left = left + 'px';
+                                win.style.top = top + 'px';
+                            });
+                            document.addEventListener('mouseup', () => { drag = false; });
+                            win.addEventListener('mousedown', () => { win.style.zIndex = ++zCounter; });
+                        });
+                        container.appendChild(importBtn);
+
                         customApps.forEach(app => {
                             const item = document.createElement('div');
                             item.className = 'store-item';
@@ -2334,12 +2441,13 @@
                     } else if (currentTab === 'publish') {
                         const form = document.createElement('div');
                         form.className = 'custom-app-form';
+                        const customAppList = allApps.filter(a => isCustomApp(a) && a.type === 'external');
                         form.innerHTML = `
                             <h3>Publish an App</h3>
-                            <p style="color:#aaa;font-size:13px;">Select an installed app to publish to the Community Store.</p>
+                            <p style="color:#aaa;font-size:13px;">Select a custom app to publish to the Community Store.</p>
                             <select id="publishSelect">
-                                ${allApps.filter(a => a.type === 'external' && !published.find(p => p.id === a.id)).map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
-                                ${allApps.filter(a => a.type === 'external' && published.find(p => p.id === a.id)).length === allApps.filter(a => a.type === 'external').length ? '<option disabled>All apps already published</option>' : ''}
+                                ${customAppList.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+                                ${customAppList.length === 0 ? '<option disabled>No custom apps available</option>' : ''}
                             </select>
                             <button id="publishBtn">Publish</button>
                         `;
@@ -2359,54 +2467,34 @@
                 renderStore();
             }
 
-            // ---------- UPDATE LOG ----------
+            // ---------- UPDATE LOG (static, no add form) ----------
             function renderUpdateLog(c) {
-                const updates = getUpdates();
+                const updates = [
+                    { version: '2.0.0', date: '2025-03-15', description: 'Major overhaul: new UI, Aether Store, Messages, Terminal v2.' },
+                    { version: '1.5.0', date: '2025-02-10', description: 'Added AetherFlix, Update Log, and custom app support.' },
+                    { version: '1.0.0', date: '2025-01-01', description: 'Initial release of AetherOS.' }
+                ];
 
-                function renderUpdates() {
-                    const container = document.createElement('div');
-                    container.className = 'update-log';
-                    const entries = document.createElement('div');
-                    entries.className = 'entries';
-                    if (updates.length === 0) {
-                        entries.innerHTML = '<p style="color:#888;text-align:center;">No updates yet.</p>';
-                    } else {
-                        updates.slice().reverse().forEach(entry => {
-                            const div = document.createElement('div');
-                            div.className = 'entry';
-                            div.innerHTML = `
-                                <span class="version">v${entry.version}</span>
-                                <span class="date">${entry.date}</span>
-                                <div class="desc">${entry.description}</div>
-                            `;
-                            entries.appendChild(div);
-                        });
-                    }
-                    container.appendChild(entries);
-
-                    const addSection = document.createElement('div');
-                    addSection.className = 'add-entry';
-                    addSection.innerHTML = `
-                        <input type="text" id="newVersion" placeholder="Version (e.g. 2.1.0)" value="1.0.0">
-                        <input type="text" id="newDesc" placeholder="Description" style="flex:2;">
-                        <button id="addUpdateBtn">Add Update</button>
+                const container = document.createElement('div');
+                container.className = 'update-log';
+                const entries = document.createElement('div');
+                entries.className = 'entries';
+                updates.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'entry';
+                    div.innerHTML = `
+                        <span class="version">v${entry.version}</span>
+                        <span class="date">${entry.date}</span>
+                        <div class="desc">${entry.description}</div>
                     `;
-                    addSection.querySelector('#addUpdateBtn').addEventListener('click', () => {
-                        const version = addSection.querySelector('#newVersion').value.trim();
-                        const desc = addSection.querySelector('#newDesc').value.trim();
-                        if (!version || !desc) { showToast('Error', 'Version and description required'); return; }
-                        addUpdate(version, desc);
-                        showToast('Update Added', `v${version} added to log`);
-                        renderUpdates();
-                    });
-                    container.appendChild(addSection);
-                    c.innerHTML = '';
-                    c.appendChild(container);
-                }
-                renderUpdates();
+                    entries.appendChild(div);
+                });
+                container.appendChild(entries);
+                c.innerHTML = '';
+                c.appendChild(container);
             }
 
-            // ---------- AETHER MESSAGES ----------
+            // ---------- AETHER MESSAGES (with sidebar) ----------
             function renderMessages(c) {
                 const user = getCurrentUser();
                 if (!user) {
@@ -2425,8 +2513,6 @@
                             messages = e.data.messages;
                             saveMessages(messages);
                             renderChat();
-                        } else if (e.data.type === 'profileUpdate') {
-                            renderChat();
                         }
                     };
                 }
@@ -2435,23 +2521,29 @@
                     const container = document.createElement('div');
                     container.className = 'messages-container';
 
-                    const header = document.createElement('div');
-                    header.className = 'messages-header';
-                    header.innerHTML = `
-                        <div class="profile-info">
-                            <span class="avatar">${user.avatar}</span>
-                            <span class="name">${user.name}</span>
-                            <span class="status">${user.status}</span>
+                    // Sidebar
+                    const sidebar = document.createElement('div');
+                    sidebar.className = 'messages-sidebar';
+                    sidebar.innerHTML = `
+                        <div class="profile-card">
+                            <div class="avatar">${user.avatar}</div>
+                            <div class="name">${user.name}</div>
+                            <div class="status">${user.status}</div>
                         </div>
+                        <div class="friend-list-title">Friends</div>
                         <div class="friend-list">
-                            ${friends.map(f => `<span class="friend-chip"><span class="${f.status === 'Online' ? 'online' : 'offline'}">●</span> ${f.name}</span>`).join('')}
-                            ${friends.length === 0 ? '<span style="color:#888;font-size:12px;">No friends yet. Add a friend by typing /add [username] in chat.</span>' : ''}
+                            ${friends.map(f => `<div class="friend-item"><span class="${f.status === 'Online' ? 'online' : 'offline'}">●</span> ${f.name}</div>`).join('')}
+                            ${friends.length === 0 ? '<div style="color:#888;font-size:12px;padding:4px 6px;">No friends yet. Type /add username in chat.</div>' : ''}
                         </div>
                     `;
-                    container.appendChild(header);
+                    container.appendChild(sidebar);
 
-                    const chat = document.createElement('div');
-                    chat.className = 'messages-chat';
+                    // Chat area
+                    const chatArea = document.createElement('div');
+                    chatArea.className = 'messages-chat-area';
+
+                    const chatMessages = document.createElement('div');
+                    chatMessages.className = 'messages-chat';
                     messages.slice().reverse().forEach(msg => {
                         const div = document.createElement('div');
                         div.className = 'msg';
@@ -2464,10 +2556,10 @@
                             <span class="content">${msg.content}</span>
                             <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
                         `;
-                        chat.appendChild(div);
+                        chatMessages.appendChild(div);
                     });
-                    chat.scrollTop = chat.scrollHeight;
-                    container.appendChild(chat);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    chatArea.appendChild(chatMessages);
 
                     const inputArea = document.createElement('div');
                     inputArea.className = 'messages-input';
@@ -2495,7 +2587,9 @@
                             inputArea.querySelector('#sendBtn').click();
                         }
                     });
-                    container.appendChild(inputArea);
+                    chatArea.appendChild(inputArea);
+                    container.appendChild(chatArea);
+
                     c.innerHTML = '';
                     c.appendChild(container);
                     const chatEl = c.querySelector('.messages-chat');
