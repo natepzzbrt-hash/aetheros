@@ -5,19 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AetherOS — Ultimate</title>
     <style>
-        /* ----- ROOT ----- */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
-        :root {
-            --bg: #0a0a18;
-            --glass: rgba(255,255,255,0.04);
-            --glass-border: rgba(255,255,255,0.08);
-            --text: #eee;
-            --accent: #7c6cf0;
-            --accent-glow: 0 0 30px rgba(124,108,240,0.4);
-            --radius: 16px;
-            --shadow: 0 20px 60px rgba(0,0,0,0.8);
-            --taskbar-height: 60px;
-        }
+        :root { --bg: #0a0a18; --glass: rgba(255,255,255,0.04); --glass-border: rgba(255,255,255,0.08); --text: #eee; --accent: #7c6cf0; --accent-glow: 0 0 30px rgba(124,108,240,0.4); --radius: 16px; --shadow: 0 20px 60px rgba(0,0,0,0.8); --taskbar-height: 60px; }
         body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); color:var(--text); display:flex; flex-direction:column; font-size:14px; }
         ::-webkit-scrollbar { width:5px; height:5px; }
         ::-webkit-scrollbar-thumb { background:var(--accent); border-radius:10px; }
@@ -78,7 +67,6 @@
         #start-menu .start-item img { width:26px; height:26px; border-radius:6px; }
         #start-menu .start-item span { font-size:26px; }
 
-        /* ----- INTERNAL APP STYLES (common) ----- */
         .calc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
         .calc-grid button { background:rgba(255,255,255,0.06); border:none; color:#fff; font-size:24px; padding:14px 0; border-radius:12px; cursor:pointer; transition:0.08s; }
         .calc-grid button:hover { background:rgba(255,255,255,0.15); }
@@ -237,7 +225,7 @@
         (() => {
             'use strict';
 
-            // ---------- BUILT-IN APPS ----------
+            // ---------- BUILT-IN APPS (including Aether Web) ----------
             const BUILTIN_APPS = [
                 { id: 'calc', name: 'Calculator', icon: '🧮', type: 'internal', internal: 'calculator' },
                 { id: 'notepad', name: 'Notepad', icon: '📝', type: 'internal', internal: 'notepad' },
@@ -250,6 +238,7 @@
                 { id: 'weather', name: 'Weather', icon: '🌤️', type: 'internal', internal: 'weather' },
                 { id: 'sysinfo', name: 'System Info', icon: '💻', type: 'internal', internal: 'sysinfo' },
                 { id: 'aetherflix', name: 'AetherFlix', icon: '🎬', type: 'internal', internal: 'aetherflix' },
+                { id: 'aetherweb', name: 'Aether Web', icon: '🕸️', type: 'internal', internal: 'aetherweb' },
                 { id: 'updatelog', name: 'Update Log', icon: '📋', type: 'internal', internal: 'updatelog' },
                 { id: 'messages', name: 'Aether Messages', icon: '💬', type: 'internal', internal: 'messages' },
                 { id: 'blooket', name: 'Blooket (Hacks)', icon: '📚', type: 'internal', internal: 'blooket' },
@@ -368,7 +357,6 @@
                 localStorage.setItem(STORAGE_PUBLISHED, JSON.stringify(list));
             }
 
-            // Only custom apps (not built-in or fallback) can be published
             function isCustomApp(app) {
                 return !BUILTIN_APPS.some(b => b.id === app.id) && !FALLBACK_APPS.some(b => b.id === app.id);
             }
@@ -385,7 +373,6 @@
                     showToast('Info', 'App already published');
                     return;
                 }
-                // Ask user to optionally edit name/icon/url before publishing
                 const newName = prompt('Edit app name (or keep as is):', app.name);
                 if (newName === null) return;
                 const newIcon = prompt('Edit icon (emoji or URL):', app.icon);
@@ -478,7 +465,7 @@
                 return me.friends.map(f => profiles.find(p => p.name === f)).filter(Boolean);
             }
 
-            // ---------- MESSAGES ----------
+            // ---------- MESSAGES (fixed) ----------
             function getMessages() {
                 const data = localStorage.getItem(STORAGE_MESSAGES);
                 if (data) {
@@ -578,7 +565,6 @@
                 const app = getAppById(appId);
                 const menu = contextMenu;
                 menu.style.display = 'flex';
-                // Enable/disable publish based on custom app
                 const publishItem = menu.querySelector('[data-action="publish"]');
                 if (app && isCustomApp(app)) {
                     publishItem.classList.remove('disabled');
@@ -1649,6 +1635,9 @@
                     case 'aetherflix':
                         renderAetherFlix(container);
                         break;
+                    case 'aetherweb':
+                        renderAetherWeb(container);
+                        break;
                     case 'updatelog':
                         renderUpdateLog(container);
                         break;
@@ -1858,7 +1847,7 @@
                 setTimeout(() => loadUrl('https://duckduckgo.com'), 400);
             }
 
-            // ---------- TERMINAL (unchanged - full featured) ----------
+            // ---------- TERMINAL ----------
             function renderTerminal(c) {
                 // Virtual file system
                 const vfs = {
@@ -2292,13 +2281,11 @@
                             grid.appendChild(item);
                         });
                     } else if (currentTab === 'customs') {
-                        // Add "Import JSON" button at the top
                         const importBtn = document.createElement('button');
                         importBtn.textContent = '📥 Import JSON';
                         importBtn.style.cssText =
                             'background:var(--accent);border:none;color:#fff;padding:6px 16px;border-radius:30px;cursor:pointer;margin-bottom:8px;align-self:flex-start;';
                         importBtn.addEventListener('click', () => {
-                            // Open a window to paste JSON
                             const win = document.createElement('div');
                             win.className = 'os-window';
                             win.style.zIndex = ++zCounter;
@@ -2353,7 +2340,7 @@
                                         buildStartMenu();
                                         showToast('Import', `Added ${added} apps`);
                                         win.remove();
-                                        renderStore(); // Refresh Customs tab
+                                        renderStore();
                                     } else {
                                         showToast('Info', 'No new apps to import');
                                     }
@@ -2361,7 +2348,6 @@
                                     showToast('Error', 'Invalid JSON: ' + err.message);
                                 }
                             });
-                            // Drag
                             let drag = false,
                                 ox, oy;
                             titleBar.addEventListener('mousedown', (e) => {
@@ -2467,7 +2453,7 @@
                 renderStore();
             }
 
-            // ---------- UPDATE LOG (static, no add form) ----------
+            // ---------- UPDATE LOG ----------
             function renderUpdateLog(c) {
                 const updates = [
                     { version: '2.0.0', date: '2025-03-15', description: 'Major overhaul: new UI, Aether Store, Messages, Terminal v2.' },
@@ -2494,117 +2480,33 @@
                 c.appendChild(container);
             }
 
-            // ---------- AETHER MESSAGES (with sidebar) ----------
-            function renderMessages(c) {
-                const user = getCurrentUser();
-                if (!user) {
-                    c.innerHTML =
-                        `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;flex-direction:column;gap:8px;"><p>Please create a profile first.</p><button onclick="openProfileCreator()" style="background:var(--accent);border:none;color:#fff;padding:8px 20px;border-radius:30px;cursor:pointer;">Create Profile</button></div>`;
-                    return;
-                }
+            // ---------- AETHER WEB (Spectre Browser) ----------
+            function renderAetherWeb(c) {
+                const webUrl = 'https://math.ghostos.workers.dev/spectre/?engine=google&proxy=scramjet&newtab=ghost&home=https%3A%2F%2Fwww.google.com';
 
-                let messages = getMessages();
-                const friends = getFriends();
-
-                if (!window.bc) {
-                    window.bc = new BroadcastChannel('aether_chat');
-                    window.bc.onmessage = (e) => {
-                        if (e.data.type === 'newMessage') {
-                            messages = e.data.messages;
-                            saveMessages(messages);
-                            renderChat();
-                        }
-                    };
-                }
-
-                function renderChat() {
-                    const container = document.createElement('div');
-                    container.className = 'messages-container';
-
-                    // Sidebar
-                    const sidebar = document.createElement('div');
-                    sidebar.className = 'messages-sidebar';
-                    sidebar.innerHTML = `
-                        <div class="profile-card">
-                            <div class="avatar">${user.avatar}</div>
-                            <div class="name">${user.name}</div>
-                            <div class="status">${user.status}</div>
+                // Add a small toolbar to match the OS style
+                c.innerHTML = `
+                    <div style="display:flex;flex-direction:column;height:100%;background:#141414;">
+                        <div style="display:flex;align-items:center;padding:4px 12px;background:rgba(0,0,0,0.6);gap:10px;flex-shrink:0;border-bottom:1px solid var(--glass-border);">
+                            <span style="color:#aaa;font-size:13px;">🕸️ Aether Web</span>
+                            <div style="flex:1;"></div>
+                            <button id="webReload" style="background:var(--accent);border:none;color:#fff;padding:2px 14px;border-radius:20px;cursor:pointer;font-size:12px;">⟳</button>
+                            <button id="webOpen" style="background:#e50914;border:none;color:#fff;padding:2px 14px;border-radius:20px;cursor:pointer;font-size:12px;">↗</button>
                         </div>
-                        <div class="friend-list-title">Friends</div>
-                        <div class="friend-list">
-                            ${friends.map(f => `<div class="friend-item"><span class="${f.status === 'Online' ? 'online' : 'offline'}">●</span> ${f.name}</div>`).join('')}
-                            ${friends.length === 0 ? '<div style="color:#888;font-size:12px;padding:4px 6px;">No friends yet. Type /add username in chat.</div>' : ''}
+                        <div style="flex:1;position:relative;">
+                            <iframe id="aetherWebIframe" src="${webUrl}" style="width:100%;height:100%;border:none;background:#fff;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
                         </div>
-                    `;
-                    container.appendChild(sidebar);
+                    </div>
+                `;
 
-                    // Chat area
-                    const chatArea = document.createElement('div');
-                    chatArea.className = 'messages-chat-area';
-
-                    const chatMessages = document.createElement('div');
-                    chatMessages.className = 'messages-chat';
-                    messages.slice().reverse().forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = 'msg';
-                        const sender = msg.sender;
-                        const profile = getProfiles().find(p => p.name === sender);
-                        const avatar = profile ? profile.avatar : '👤';
-                        div.innerHTML = `
-                            <span>${avatar}</span>
-                            <span class="sender">${sender}</span>
-                            <span class="content">${msg.content}</span>
-                            <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-                        `;
-                        chatMessages.appendChild(div);
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    chatArea.appendChild(chatMessages);
-
-                    const inputArea = document.createElement('div');
-                    inputArea.className = 'messages-input';
-                    inputArea.innerHTML = `
-                        <input id="msgInput" placeholder="Type a message... ( /add username to add friend )">
-                        <button id="sendBtn">Send</button>
-                    `;
-                    inputArea.querySelector('#sendBtn').addEventListener('click', () => {
-                        const input = inputArea.querySelector('#msgInput');
-                        const text = input.value.trim();
-                        if (!text) return;
-                        if (text.startsWith('/add ')) {
-                            const friendName = text.substring(5).trim();
-                            if (friendName) addFriend(friendName);
-                            input.value = '';
-                            renderChat();
-                            return;
-                        }
-                        sendMessage(text);
-                        input.value = '';
-                        renderChat();
-                    });
-                    inputArea.querySelector('#msgInput').addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter') {
-                            inputArea.querySelector('#sendBtn').click();
-                        }
-                    });
-                    chatArea.appendChild(inputArea);
-                    container.appendChild(chatArea);
-
-                    c.innerHTML = '';
-                    c.appendChild(container);
-                    const chatEl = c.querySelector('.messages-chat');
-                    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
-                }
-
-                renderChat();
-
-                window.bc.onmessage = (e) => {
-                    if (e.data.type === 'newMessage') {
-                        messages = e.data.messages;
-                        saveMessages(messages);
-                        renderChat();
-                    }
-                };
+                const iframe = c.querySelector('#aetherWebIframe');
+                c.querySelector('#webReload').addEventListener('click', () => {
+                    iframe.src = webUrl;
+                    showToast('Aether Web', 'Reloaded');
+                });
+                c.querySelector('#webOpen').addEventListener('click', () => {
+                    window.open(webUrl, '_blank');
+                });
             }
 
             // ---------- AETHERFLIX ----------
@@ -2815,6 +2717,126 @@
                 c.querySelector('#directBtn').addEventListener('click', () => { window.open(xcloudUrl, '_blank'); });
             }
 
+            // ---------- MESSAGES (fixed - with sidebar and real-time updates) ----------
+            function renderMessages(c) {
+                const user = getCurrentUser();
+                if (!user) {
+                    c.innerHTML =
+                        `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;flex-direction:column;gap:8px;"><p>Please create a profile first.</p><button onclick="openProfileCreator()" style="background:var(--accent);border:none;color:#fff;padding:8px 20px;border-radius:30px;cursor:pointer;">Create Profile</button></div>`;
+                    return;
+                }
+
+                let messages = getMessages();
+                const friends = getFriends();
+
+                // BroadcastChannel for real-time sync
+                if (!window.bc) {
+                    window.bc = new BroadcastChannel('aether_chat');
+                    window.bc.onmessage = (e) => {
+                        if (e.data.type === 'newMessage') {
+                            messages = e.data.messages;
+                            saveMessages(messages);
+                            renderChat();
+                        }
+                    };
+                }
+
+                function renderChat() {
+                    const container = document.createElement('div');
+                    container.className = 'messages-container';
+
+                    // Sidebar
+                    const sidebar = document.createElement('div');
+                    sidebar.className = 'messages-sidebar';
+                    sidebar.innerHTML = `
+                        <div class="profile-card">
+                            <div class="avatar">${user.avatar}</div>
+                            <div class="name">${user.name}</div>
+                            <div class="status">${user.status}</div>
+                        </div>
+                        <div class="friend-list-title">Friends</div>
+                        <div class="friend-list">
+                            ${friends.map(f => `<div class="friend-item"><span class="${f.status === 'Online' ? 'online' : 'offline'}">●</span> ${f.name}</div>`).join('')}
+                            ${friends.length === 0 ? '<div style="color:#888;font-size:12px;padding:4px 6px;">No friends yet. Type /add username in chat.</div>' : ''}
+                        </div>
+                    `;
+                    container.appendChild(sidebar);
+
+                    // Chat area
+                    const chatArea = document.createElement('div');
+                    chatArea.className = 'messages-chat-area';
+
+                    const chatMessages = document.createElement('div');
+                    chatMessages.className = 'messages-chat';
+                    // Display messages from newest to oldest (reverse)
+                    const sortedMessages = [...messages].reverse();
+                    sortedMessages.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'msg';
+                        const sender = msg.sender;
+                        const profile = getProfiles().find(p => p.name === sender);
+                        const avatar = profile ? profile.avatar : '👤';
+                        div.innerHTML = `
+                            <span>${avatar}</span>
+                            <span class="sender">${sender}</span>
+                            <span class="content">${msg.content}</span>
+                            <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                        `;
+                        chatMessages.appendChild(div);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    chatArea.appendChild(chatMessages);
+
+                    const inputArea = document.createElement('div');
+                    inputArea.className = 'messages-input';
+                    inputArea.innerHTML = `
+                        <input id="msgInput" placeholder="Type a message... ( /add username to add friend )">
+                        <button id="sendBtn">Send</button>
+                    `;
+                    inputArea.querySelector('#sendBtn').addEventListener('click', () => {
+                        const input = inputArea.querySelector('#msgInput');
+                        const text = input.value.trim();
+                        if (!text) return;
+                        if (text.startsWith('/add ')) {
+                            const friendName = text.substring(5).trim();
+                            if (friendName) addFriend(friendName);
+                            input.value = '';
+                            // Re-render to update friend list
+                            renderChat();
+                            return;
+                        }
+                        sendMessage(text);
+                        input.value = '';
+                        // Re-render to update messages
+                        renderChat();
+                    });
+                    inputArea.querySelector('#msgInput').addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            inputArea.querySelector('#sendBtn').click();
+                        }
+                    });
+                    chatArea.appendChild(inputArea);
+                    container.appendChild(chatArea);
+
+                    c.innerHTML = '';
+                    c.appendChild(container);
+                    // Scroll to bottom of chat
+                    const chatEl = c.querySelector('.messages-chat');
+                    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+                }
+
+                renderChat();
+
+                // Listen for messages from other tabs
+                window.bc.onmessage = (e) => {
+                    if (e.data.type === 'newMessage') {
+                        messages = e.data.messages;
+                        saveMessages(messages);
+                        renderChat();
+                    }
+                };
+            }
+
             // ---------- CLOCK ----------
             function updateClock() {
                 const d = new Date();
@@ -2844,7 +2866,7 @@
                 loadExternalAppLinks('apps.json');
             }, 500);
 
-            showToast('Welcome', 'AetherOS Ultimate — Right‑click for full control!');
+            showToast('Welcome', 'AetherOS Ultimate — Aether Web & Messages fixed!');
 
         })();
     </script>
