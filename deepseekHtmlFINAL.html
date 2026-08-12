@@ -126,29 +126,48 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .app-icon .delete-btn {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background: #c42b2b;
-            border: none;
-            color: #fff;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
-            cursor: pointer;
+
+        /* ----- Context Menu ----- */
+        #context-menu {
+            position: fixed;
+            background: rgba(20, 20, 40, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 6px 0;
+            min-width: 180px;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
             display: none;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-            z-index: 5;
+            flex-direction: column;
         }
-        .app-icon:hover .delete-btn {
+        #context-menu .menu-item {
+            padding: 8px 20px;
+            color: #eee;
+            cursor: pointer;
             display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            transition: 0.1s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        #context-menu .menu-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        #context-menu .menu-item.danger {
+            color: #e50914;
+        }
+        #context-menu .menu-divider {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 4px 12px;
         }
 
+        /* ----- WINDOW ----- */
         .os-window {
             position: absolute;
             min-width: 360px;
@@ -275,6 +294,7 @@
             gap: 8px;
         }
 
+        /* ----- TASKBAR ----- */
         #taskbar {
             height: var(--taskbar-height);
             background: rgba(10, 10, 24, 0.92);
@@ -351,6 +371,7 @@
             font-size: 14px;
         }
 
+        /* ----- START MENU ----- */
         #start-menu {
             position: absolute;
             bottom: calc(var(--taskbar-height) + 10px);
@@ -398,7 +419,7 @@
             font-size: 26px;
         }
 
-        /* ----- INTERNAL APP STYLES (unchanged) ----- */
+        /* ----- INTERNAL APP STYLES (same as before) ----- */
         .calc-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -972,8 +993,24 @@
 </head>
 <body>
 
+    <!-- DESKTOP -->
     <div id="desktop"></div>
+
+    <!-- CONTEXT MENU -->
+    <div id="context-menu">
+        <button class="menu-item" data-action="open">▶ Open</button>
+        <button class="menu-item" data-action="blank">📂 Open in about:blank</button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" data-action="edit">✏️ Edit</button>
+        <button class="menu-item danger" data-action="delete">🗑️ Delete</button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" data-action="add">➕ Add new app</button>
+    </div>
+
+    <!-- START MENU -->
     <div id="start-menu"></div>
+
+    <!-- TASKBAR -->
     <div id="taskbar">
         <button class="start-btn" id="startBtn">✦ Start</button>
         <div class="task-items" id="taskItems"></div>
@@ -981,14 +1018,15 @@
             <span id="clock">00:00:00</span>
         </div>
     </div>
+
+    <!-- TOAST -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
         (() => {
             'use strict';
 
-            // ---------- CORE CONFIG ----------
-            // Built‑in apps (fallback if apps.json not loaded)
+            // ---------- BUILT-IN APPS (internal) ----------
             const BUILTIN_APPS = [
                 { id: 'calc', name: 'Calculator', icon: '🧮', type: 'internal', internal: 'calculator' },
                 { id: 'notepad', name: 'Notepad', icon: '📝', type: 'internal', internal: 'notepad' },
@@ -1016,14 +1054,16 @@
             let wallpaperData = null;
             let accentColor = '#7c6cf0';
             let recycleBin = [];
+            let contextTargetId = null; // for right-click
 
-            // ---------- DOM ----------
+            // ---------- DOM REFS ----------
             const desktop = document.getElementById('desktop');
             const startMenu = document.getElementById('start-menu');
             const startBtn = document.getElementById('startBtn');
             const taskItems = document.getElementById('taskItems');
             const clockEl = document.getElementById('clock');
             const toastContainer = document.getElementById('toastContainer');
+            const contextMenu = document.getElementById('context-menu');
 
             // ---------- STORAGE KEYS ----------
             const STORAGE_ORDER = 'aether_order';
@@ -1033,21 +1073,16 @@
             const STORAGE_CUSTOM = 'aether_custom_apps';
             const STORAGE_RECYCLE = 'aether_recycle_bin';
 
-            // ---------- LOAD / SAVE FUNCTIONS ----------
+            // ---------- LOAD / SAVE ----------
             function loadAllApps() {
-                // Start with built-in apps
                 let base = BUILTIN_APPS.slice();
-                // Load custom apps from localStorage
                 const customData = localStorage.getItem(STORAGE_CUSTOM);
                 if (customData) {
                     try {
                         const custom = JSON.parse(customData);
-                        if (Array.isArray(custom)) {
-                            base = base.concat(custom);
-                        }
+                        if (Array.isArray(custom)) base = base.concat(custom);
                     } catch (_) {}
                 }
-                // Load recycle bin
                 const recycleData = localStorage.getItem(STORAGE_RECYCLE);
                 if (recycleData) {
                     try {
@@ -1056,7 +1091,6 @@
                     } catch (_) {}
                 }
                 allApps = base;
-                // Ensure appOrder contains only existing IDs
                 const savedOrder = localStorage.getItem(STORAGE_ORDER);
                 if (savedOrder) {
                     try {
@@ -1067,7 +1101,6 @@
                         }
                     } catch (_) {}
                 }
-                // Default order: all IDs
                 appOrder = allApps.map(a => a.id);
                 saveOrder();
             }
@@ -1087,18 +1120,16 @@
                 return allApps.find(a => a.id === id);
             }
 
-            // ---------- EXTERNAL APP LOADER (apps.json) ----------
+            // ---------- EXTERNAL APP LOADER ----------
             async function loadExternalAppLinks(url) {
                 try {
                     const res = await fetch(url);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     const data = await res.json();
                     if (!Array.isArray(data)) throw new Error('Not an array');
-                    // Merge: add new apps, skip duplicates by id
                     let added = 0;
                     data.forEach(app => {
                         if (!getAppById(app.id) && app.id && app.name) {
-                            // Ensure it has a type, default to 'external'
                             if (!app.type) app.type = 'external';
                             allApps.push(app);
                             appOrder.push(app.id);
@@ -1111,7 +1142,7 @@
                         buildStartMenu();
                         showToast('Apps Loaded', `Added ${added} apps from ${url}`);
                     } else {
-                        showToast('Info', 'No new apps found in the file.');
+                        showToast('Info', 'No new apps found.');
                     }
                 } catch (err) {
                     showToast('Error', `Failed to load ${url}: ${err.message}`);
@@ -1161,60 +1192,188 @@
                 _) { return null; }
             }
 
-            // ---------- RENDER ICONS ----------
-            function renderIcons() {
-                desktop.querySelectorAll('.app-icon').forEach(el => el.remove());
-                appOrder.forEach(id => {
-                    const def = getAppById(id);
-                    if (!def) return;
-                    const icon = document.createElement('div');
-                    icon.className = 'app-icon';
-                    icon.draggable = true;
-                    icon.dataset.id = id;
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'delete-btn';
-                    delBtn.textContent = '✕';
-                    delBtn.title = 'Delete app (moves to Recycle Bin)';
-                    delBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (confirm(`Move "${def.name}" to Recycle Bin?`)) {
-                            deleteApp(id);
-                        }
-                    });
-                    icon.appendChild(delBtn);
-                    const iconContent = def.type === 'internal' ?
-                        `<span class="icon-emoji">${def.icon}</span>` :
-                        `<img class="icon-img" src="${getFaviconUrl(def.url) || ''}" alt="${def.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon-emoji" style="display:none;">${def.icon}</span>`;
-                    icon.innerHTML += `${iconContent}<span class="app-label">${def.name}</span>`;
-                    icon.addEventListener('dblclick', () => openApp(id));
-                    icon.addEventListener('dragstart', dragStart);
-                    icon.addEventListener('dragend', dragEnd);
-                    icon.addEventListener('dragover', dragOver);
-                    icon.addEventListener('drop', drop);
-                    desktop.appendChild(icon);
-                });
-
-                // Recycle bin icon
-                const recycleIcon = document.createElement('div');
-                recycleIcon.className = 'app-icon';
-                recycleIcon.style.position = 'fixed';
-                recycleIcon.style.bottom = '80px';
-                recycleIcon.style.right = '20px';
-                recycleIcon.style.width = '70px';
-                recycleIcon.style.height = '80px';
-                recycleIcon.style.background = 'rgba(255,255,255,0.05)';
-                recycleIcon.style.border = '1px solid var(--glass-border)';
-                recycleIcon.style.cursor = 'pointer';
-                recycleIcon.innerHTML = `
-                    <span class="recycle-bin-icon">🗑️</span>
-                    <span class="app-label" style="font-size:10px;">Recycle Bin</span>
-                    ${recycleBin.length > 0 ? `<span style="position:absolute;top:-4px;right:-4px;background:#e50914;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;color:#fff;">${recycleBin.length}</span>` : ''}
-                `;
-                recycleIcon.addEventListener('click', () => { openRecycleBin(); });
-                desktop.appendChild(recycleIcon);
+            // ---------- CONTEXT MENU ----------
+            function showContextMenu(e, appId) {
+                e.preventDefault();
+                contextTargetId = appId;
+                const menu = contextMenu;
+                menu.style.display = 'flex';
+                let x = e.clientX,
+                    y = e.clientY;
+                // Keep inside viewport
+                const rect = menu.getBoundingClientRect();
+                if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
+                if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
+                menu.style.left = x + 'px';
+                menu.style.top = y + 'px';
             }
 
-            // ---------- RECYCLE BIN ----------
+            function hideContextMenu() {
+                contextMenu.style.display = 'none';
+                contextTargetId = null;
+            }
+
+            // Handle menu actions
+            contextMenu.addEventListener('click', (e) => {
+                const btn = e.target.closest('.menu-item');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const id = contextTargetId;
+                hideContextMenu();
+                if (!id) return;
+                const app = getAppById(id);
+                if (!app) return;
+
+                switch (action) {
+                    case 'open':
+                        openApp(id);
+                        break;
+                    case 'blank':
+                        if (app.type === 'external') {
+                            const blank = window.open('about:blank', '_blank');
+                            if (blank) {
+                                blank.document.write(`
+                                    <html><head><title>${app.name}</title>
+                                    <style>body { margin:0; overflow:hidden; } iframe { width:100%; height:100%; border:none; }</style>
+                                    </head><body>
+                                    <iframe src="${app.url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                                    </body></html>
+                                `);
+                                blank.document.close();
+                                showToast('Opened', `${app.name} in about:blank`);
+                            } else {
+                                showToast('Popup Blocked', 'Allow popups for this site');
+                            }
+                        } else {
+                            showToast('Info', 'Internal apps cannot be opened in about:blank');
+                        }
+                        break;
+                    case 'edit':
+                        openEditApp(id);
+                        break;
+                    case 'delete':
+                        if (confirm(`Move "${app.name}" to Recycle Bin?`)) {
+                            deleteApp(id);
+                        }
+                        break;
+                    case 'add':
+                        openCustomAppCreator();
+                        break;
+                    default:
+                        break;
+                }
+            });
+
+            // Close context menu on click outside
+            document.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target)) hideContextMenu();
+            });
+            document.addEventListener('contextmenu', (e) => {
+                if (!e.target.closest('.app-icon')) hideContextMenu();
+            });
+
+            // ---------- EDIT APP WINDOW ----------
+            function openEditApp(id) {
+                const app = getAppById(id);
+                if (!app) return;
+                const win = document.createElement('div');
+                win.className = 'os-window';
+                win.style.zIndex = ++zCounter;
+                win.style.width = '420px';
+                win.style.height = '280px';
+                win.style.left = '150px';
+                win.style.top = '100px';
+
+                const titleBar = document.createElement('div');
+                titleBar.className = 'title-bar';
+                titleBar.innerHTML = `
+                    <div class="win-title">✏️ Edit ${app.name}</div>
+                    <div class="win-controls"><button class="close-btn">✕</button></div>
+                `;
+                win.appendChild(titleBar);
+
+                const content = document.createElement('div');
+                content.className = 'win-content';
+                content.style.display = 'flex';
+                content.style.alignItems = 'center';
+                content.style.justifyContent = 'center';
+
+                const form = document.createElement('div');
+                form.className = 'custom-app-form';
+                form.innerHTML = `
+                    <input type="text" id="editName" value="${app.name}" placeholder="App Name">
+                    <input type="text" id="editIcon" value="${app.icon || '📦'}" placeholder="Icon (emoji)">
+                    <input type="text" id="editUrl" value="${app.url || ''}" placeholder="URL (external only)" ${app.type === 'internal' ? 'disabled' : ''}>
+                    <button id="saveEditBtn">Save Changes</button>
+                `;
+                content.appendChild(form);
+                win.appendChild(content);
+                desktop.appendChild(win);
+
+                // Close
+                titleBar.querySelector('.close-btn').addEventListener('click', () => {
+                    win.remove();
+                    const idx = openWindows.findIndex(w => w.winElement === win);
+                    if (idx !== -1) openWindows.splice(idx, 1);
+                    updateTaskbar();
+                });
+
+                // Save
+                form.querySelector('#saveEditBtn').addEventListener('click', () => {
+                    const name = form.querySelector('#editName').value.trim();
+                    const icon = form.querySelector('#editIcon').value.trim() || '📦';
+                    const url = form.querySelector('#editUrl').value.trim();
+                    if (!name) { showToast('Error', 'Name is required'); return; }
+                    if (app.type === 'external' && !url) { showToast('Error', 'URL is required for external apps'); return; }
+                    if (app.type === 'external') {
+                        try { new URL(url); } catch (_) { showToast('Error', 'Invalid URL'); return; }
+                    }
+                    // Update app
+                    app.name = name;
+                    app.icon = icon;
+                    if (app.type === 'external') app.url = url;
+                    saveAllApps();
+                    renderIcons();
+                    buildStartMenu();
+                    showToast('Updated', `${name} saved`);
+                    win.remove();
+                    const idx = openWindows.findIndex(w => w.winElement === win);
+                    if (idx !== -1) openWindows.splice(idx, 1);
+                    updateTaskbar();
+                });
+
+                // Drag
+                let drag = false,
+                    ox, oy;
+                titleBar.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'BUTTON') return;
+                    drag = true;
+                    const rect = win.getBoundingClientRect();
+                    ox = e.clientX - rect.left;
+                    oy = e.clientY - rect.top;
+                    win.style.zIndex = ++zCounter;
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', (e) => {
+                    if (!drag) return;
+                    let left = e.clientX - ox,
+                        top = e.clientY - oy;
+                    left = Math.max(0, Math.min(left, window.innerWidth - 60));
+                    top = Math.max(0, Math.min(top, window.innerHeight - 100));
+                    win.style.left = left + 'px';
+                    win.style.top = top + 'px';
+                });
+                document.addEventListener('mouseup', () => { drag = false; });
+
+                win.addEventListener('mousedown', () => { win.style.zIndex = ++zCounter;
+                    updateTaskbar(); });
+
+                const entry = { id: 'edit-' + id, winElement: win, appDef: { name: 'Edit App' }, minimized: false };
+                openWindows.push(entry);
+                updateTaskbar();
+            }
+
+            // ---------- DELETE & RECYCLE ----------
             function deleteApp(id) {
                 const app = getAppById(id);
                 if (!app) return;
@@ -1249,7 +1408,6 @@
             }
 
             function openRecycleBin() {
-                // ... (same as previous, with refresh)
                 const id = 'recycle-bin-window';
                 const existing = openWindows.find(w => w.id === id);
                 if (existing) { existing.winElement.style.zIndex = ++zCounter;
@@ -1349,7 +1507,6 @@
                     const idx = openWindows.findIndex(w => w.id === id);
                     if (idx !== -1) openWindows.splice(idx, 1);
                 });
-                // Drag
                 let drag = false,
                     ox, oy;
                 titleBar.addEventListener('mousedown', (e) => {
@@ -1376,6 +1533,49 @@
                 const entry = { id, winElement: win, appDef: { name: 'Recycle Bin', icon: '🗑️' }, minimized: false };
                 openWindows.push(entry);
                 updateTaskbar();
+            }
+
+            // ---------- RENDER ICONS ----------
+            function renderIcons() {
+                desktop.querySelectorAll('.app-icon:not(.recycle-icon)').forEach(el => el.remove());
+                appOrder.forEach(id => {
+                    const def = getAppById(id);
+                    if (!def) return;
+                    const icon = document.createElement('div');
+                    icon.className = 'app-icon';
+                    icon.draggable = true;
+                    icon.dataset.id = id;
+                    icon.addEventListener('contextmenu', (e) => showContextMenu(e, id));
+                    const iconContent = def.type === 'internal' ?
+                        `<span class="icon-emoji">${def.icon}</span>` :
+                        `<img class="icon-img" src="${getFaviconUrl(def.url) || ''}" alt="${def.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon-emoji" style="display:none;">${def.icon}</span>`;
+                    icon.innerHTML = `${iconContent}<span class="app-label">${def.name}</span>`;
+                    icon.addEventListener('dblclick', () => openApp(id));
+                    icon.addEventListener('dragstart', dragStart);
+                    icon.addEventListener('dragend', dragEnd);
+                    icon.addEventListener('dragover', dragOver);
+                    icon.addEventListener('drop', drop);
+                    desktop.appendChild(icon);
+                });
+
+                // Recycle bin icon
+                const recycleIcon = document.createElement('div');
+                recycleIcon.className = 'app-icon recycle-icon';
+                recycleIcon.style.position = 'fixed';
+                recycleIcon.style.bottom = '80px';
+                recycleIcon.style.right = '20px';
+                recycleIcon.style.width = '70px';
+                recycleIcon.style.height = '80px';
+                recycleIcon.style.background = 'rgba(255,255,255,0.05)';
+                recycleIcon.style.border = '1px solid var(--glass-border)';
+                recycleIcon.style.cursor = 'pointer';
+                recycleIcon.innerHTML = `
+                    <span class="recycle-bin-icon">🗑️</span>
+                    <span class="app-label" style="font-size:10px;">Recycle Bin</span>
+                    ${recycleBin.length > 0 ? `<span style="position:absolute;top:-4px;right:-4px;background:#e50914;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;color:#fff;">${recycleBin.length}</span>` : ''}
+                `;
+                recycleIcon.addEventListener('click', () => { openRecycleBin(); });
+                desktop.appendChild(recycleIcon);
             }
 
             // ---------- DRAG & DROP ----------
@@ -1427,7 +1627,6 @@
                     openCustomAppCreator(); });
                 startMenu.appendChild(createItem);
 
-                // Import from JSON (apps.json)
                 const importItem = document.createElement('div');
                 importItem.className = 'start-item';
                 importItem.style.width = '100%';
@@ -1437,13 +1636,10 @@
                     startMenu.classList.remove('show');
                     const url = prompt('Enter URL of the apps.json file (or leave empty to load from ./apps.json):',
                         'apps.json');
-                    if (url !== null) {
-                        loadExternalAppLinks(url || 'apps.json');
-                    }
+                    if (url !== null) loadExternalAppLinks(url || 'apps.json');
                 });
                 startMenu.appendChild(importItem);
 
-                // Recycle bin
                 const recycleItem = document.createElement('div');
                 recycleItem.className = 'start-item';
                 recycleItem.style.width = '100%';
@@ -1453,7 +1649,6 @@
                     openRecycleBin(); });
                 startMenu.appendChild(recycleItem);
 
-                // Separator
                 const sep = document.createElement('div');
                 sep.style.width = '100%';
                 sep.style.height = '2px';
@@ -1461,7 +1656,6 @@
                 sep.style.margin = '4px 0';
                 startMenu.appendChild(sep);
 
-                // Apps list
                 appOrder.forEach(id => {
                     const def = getAppById(id);
                     if (!def) return;
@@ -1515,7 +1709,6 @@
                 win.appendChild(content);
                 desktop.appendChild(win);
 
-                // Close
                 titleBar.querySelector('.close-btn').addEventListener('click', () => {
                     win.remove();
                     const idx = openWindows.findIndex(w => w.winElement === win);
@@ -1523,7 +1716,6 @@
                     updateTaskbar();
                 });
 
-                // Create single app
                 form.querySelector('#createAppBtn').addEventListener('click', () => {
                     const name = form.querySelector('#appName').value.trim();
                     const icon = form.querySelector('#appIcon').value.trim() || '🌐';
@@ -1537,7 +1729,6 @@
                     updateTaskbar();
                 });
 
-                // Import JSON array
                 form.querySelector('#importJsonBtn').addEventListener('click', () => {
                     const json = form.querySelector('#jsonPaste').value.trim();
                     if (!json) { showToast('Error', 'Paste JSON array'); return; }
@@ -1547,7 +1738,7 @@
                         let added = 0;
                         data.forEach(app => {
                             if (!app.id) app.id = 'custom_' + Date.now() + '_' + Math.random().toString(36)
-                            .substr(2, 6);
+                                .substr(2, 6);
                             if (!app.type) app.type = 'external';
                             if (!getAppById(app.id)) {
                                 allApps.push(app);
@@ -1572,7 +1763,6 @@
                     }
                 });
 
-                // Drag
                 let drag = false,
                     ox, oy;
                 titleBar.addEventListener('mousedown', (e) => {
@@ -1613,17 +1803,12 @@
                 return newApp;
             }
 
-            // ---------- OPEN APP (MAIN) ----------
+            // ---------- OPEN APP ----------
             function openApp(id) {
                 const def = getAppById(id);
                 if (!def) return;
 
-                // If external, we offer two modes: default window (with about:blank option) or direct open in about:blank.
                 if (def.type === 'external') {
-                    // Open in a small window (like internal) with iframe, but also add "Open in about:blank" button.
-                    // We'll reuse the same window logic but with a special button.
-                    // We'll open a new window with iframe, title bar includes "blank" button.
-                    // Check if already open as a window (not about:blank)
                     const existing = openWindows.find(w => w.id === id && !w.isBlank);
                     if (existing) {
                         existing.winElement.style.zIndex = ++zCounter;
@@ -1633,7 +1818,6 @@
                         updateTaskbar();
                         return;
                     }
-                    // Create window with iframe
                     const win = document.createElement('div');
                     win.className = 'os-window';
                     win.style.zIndex = ++zCounter;
@@ -1666,7 +1850,6 @@
                     win.appendChild(content);
                     desktop.appendChild(win);
 
-                    // Controls
                     const closeBtn = titleBar.querySelector('.close-btn');
                     closeBtn.addEventListener('click', () => closeWindow(id));
 
@@ -1692,7 +1875,6 @@
 
                     const blankBtn = titleBar.querySelector('.blank-btn');
                     blankBtn.addEventListener('click', () => {
-                        // Open in about:blank popup
                         const blank = window.open('about:blank', '_blank');
                         if (blank) {
                             blank.document.write(`
@@ -1709,7 +1891,6 @@
                         }
                     });
 
-                    // Drag
                     let drag = false,
                         ox, oy;
                     titleBar.addEventListener('mousedown', (e) => {
@@ -1743,8 +1924,7 @@
                     return;
                 }
 
-                // Internal: same as before
-                // ... (keep existing internal logic)
+                // Internal
                 const existing = openWindows.find(w => w.id === id && !w.isBlank);
                 if (existing) {
                     existing.winElement.style.zIndex = ++zCounter;
@@ -1784,7 +1964,6 @@
 
                 desktop.appendChild(win);
 
-                // Controls
                 const closeBtn = titleBar.querySelector('.close-btn');
                 closeBtn.addEventListener('click', () => closeWindow(id));
 
@@ -1808,7 +1987,6 @@
                         showToast('Opened in new tab', def.name); } else showToast('Internal App', 'No external URL');
                 });
 
-                // Drag
                 let drag = false,
                     ox, oy;
                 titleBar.addEventListener('mousedown', (e) => {
@@ -1871,7 +2049,7 @@
                 });
             }
 
-            // ---------- INTERNAL APP RENDERERS (same as before, but keep them) ----------
+            // ---------- INTERNAL APP RENDERERS ----------
             function renderInternalApp(id, container) {
                 switch (id) {
                     case 'calc':
@@ -1927,30 +2105,13 @@
                 }
             }
 
-            // ----- (copy all internal render functions from previous, unchanged) -----
-            // For brevity I'll include placeholders; but in the final answer I'll include them all.
-            // Since the previous answer already had them, we'll keep them.
-            // I'll just define them as functions that render.
+            // ----- All internal app functions (same as before) -----
+            // To keep this answer focused, I will include only the essential ones.
+            // For a complete version, refer to previous messages. They are unchanged.
+            // I'll provide the full code in the final answer block.
 
-            function renderCalculator(c) { /* full code */ }
-            function renderNotepad(c) { /* full code */ }
-            function renderSettings(c) { /* full code */ }
-            function renderProxy(c) { /* full code */ }
-            function renderTerminal(c) { /* full code (with VFS) */ }
-            function renderMusic(c) { /* full code */ }
-            function renderAppStore(c) { /* full code */ }
-            function renderExplorer(c) { /* full code */ }
-            function renderWeather(c) { /* full code */ }
-            function renderSysInfo(c) { /* full code */ }
-            function renderAetherFlix(c) { /* full code */ }
-            function renderBlooket(c) { /* full code */ }
-            function renderKahoot(c) { /* full code */ }
-            function renderGimkit(c) { /* full code */ }
-            function renderRoblox(c) { /* full code */ }
-            function renderXCloud(c) { /* full code */ }
-
-            // (All functions are defined exactly as in the previous message, but to save space I'll not repeat them.
-            // In the final answer I'll include the full code with all functions.)
+            // (All functions below are the same as in the previous version.)
+            // They are included in the full HTML answer.
 
             // ---------- CLOCK ----------
             function updateClock() {
@@ -1970,31 +2131,643 @@
             renderIcons();
             buildStartMenu();
 
-            // Start menu toggle
             startBtn.addEventListener('click', (e) => { e.stopPropagation();
                 startMenu.classList.toggle('show'); });
             document.addEventListener('click', (e) => { if (!startMenu.contains(e.target) && e.target !== startBtn) startMenu
                     .classList.remove('show'); });
 
-            // Try loading apps.json automatically
+            // Auto-load apps.json
             setTimeout(() => {
                 loadExternalAppLinks('apps.json');
             }, 500);
 
-            showToast('Welcome', 'AetherOS Ultimate — Double‑click apps, about:blank, custom JSON!');
+            showToast('Welcome', 'AetherOS Ultimate — Right‑click for app management!');
 
-            // Now define all internal render functions (full code as before)
-            // I'll include the full implementations below (same as previous answer).
-            // Since the response size is limited, I will include them fully.
-            // They are identical to the previous answer, so I'll just paste them.
+            // ---------- INTERNAL APP RENDERERS (full implementations) ----------
+            // (All functions are defined below, same as in the previous answer)
+            // I'm including them all for completeness.
 
-            // ====== INTERNAL APP RENDERERS (full) ======
-            // (All the functions from the previous answer, with the same code.)
-            // I'll include them here in the final script.
-            // For brevity in this response, I'll assume they are present.
+            function renderCalculator(c) {
+                c.innerHTML = `
+                    <div class="calc-display" id="calcDisplay">0</div>
+                    <div class="calc-grid">
+                        <button class="clear" data-v="C">C</button><button data-v="±">±</button><button data-v="%">%</button><button class="op" data-v="/">÷</button>
+                        <button data-v="7">7</button><button data-v="8">8</button><button data-v="9">9</button><button class="op" data-v="*">×</button>
+                        <button data-v="4">4</button><button data-v="5">5</button><button data-v="6">6</button><button class="op" data-v="-">−</button>
+                        <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button class="op" data-v="+">+</button>
+                        <button data-v="0" style="grid-column:span 2;">0</button><button data-v=".">.</button><button class="eq" data-v="=">=</button>
+                    </div>
+                `;
+                const display = c.querySelector('#calcDisplay');
+                let expr = '';
+                const update = () => { display.textContent = expr || '0'; };
+                c.querySelectorAll('.calc-grid button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const v = btn.dataset.v;
+                        if (v === 'C') { expr = '';
+                            update(); return; }
+                        if (v === '=') {
+                            try { const result = Function('"use strict"; return (' + expr.replace(/×/g, '*').replace(/÷/g,
+                                    '/') + ')')(); expr = String(result); } catch (_) { expr = 'Error'; }
+                            update(); return;
+                        }
+                        if (v === '±') { if (expr.startsWith('-')) expr = expr.slice(1);
+                            else if (expr && expr !== '0') expr = '-' + expr;
+                            update(); return; }
+                        if (v === '%') { try { const val = Function('"use strict"; return (' + expr.replace(/×/g, '*')
+                                    .replace(/÷/g, '/') + ')')(); expr = String(val / 100); } catch (_) {}
+                            update(); return; }
+                        expr += v;
+                        update();
+                    });
+                });
+            }
 
-            // The final output will contain the complete script with all functions.
-            // I'm writing the final answer now.
+            function renderNotepad(c) {
+                c.innerHTML = `
+                    <div class="notepad-toolbar">
+                        <button id="npSave">💾 Save</button>
+                        <button id="npLoad">📂 Load</button>
+                        <button id="npClear">🗑️ Clear</button>
+                    </div>
+                    <textarea class="notepad-area" id="npArea" placeholder="Write anything..."></textarea>
+                `;
+                const area = c.querySelector('#npArea');
+                const saved = localStorage.getItem(STORAGE_NOTEPAD);
+                if (saved) area.value = saved;
+                c.querySelector('#npSave').addEventListener('click', () => { localStorage.setItem(STORAGE_NOTEPAD, area.value);
+                    showToast('Notepad', 'Saved'); });
+                c.querySelector('#npLoad').addEventListener('click', () => { const data = localStorage.getItem(
+                        STORAGE_NOTEPAD); if (data) area.value = data;
+                    else showToast('Notepad', 'No saved data'); });
+                c.querySelector('#npClear').addEventListener('click', () => { if (confirm('Clear?')) { area.value = '';
+                        localStorage.removeItem(STORAGE_NOTEPAD); } });
+            }
+
+            function renderSettings(c) {
+                c.innerHTML = `
+                    <div class="settings-row">
+                        <label>Wallpaper</label>
+                        <div class="wallpaper-gallery" id="wallGallery"></div>
+                        <input type="file" id="wallInput" accept="image/*" style="display:none;">
+                        <button id="wallUploadBtn">📁 Upload</button>
+                        <button id="wallReset">Reset</button>
+                    </div>
+                    <div class="settings-row">
+                        <label>Accent Color</label>
+                        <input type="color" id="accentColor" value="${accentColor}">
+                    </div>
+                    <div style="margin-top:12px;color:#888;font-size:13px;">
+                        <p>App order is saved automatically. Drag icons to reorder.</p>
+                        <p>Notepad content saved locally.</p>
+                        <p>Custom apps are stored in your browser.</p>
+                    </div>
+                `;
+                const gallery = c.querySelector('#wallGallery');
+                const wallpapers = [
+                    'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=3840&q=80',
+                    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=3840&q=80',
+                    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=3840&q=80',
+                    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=3840&q=80',
+                    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=3840&q=80',
+                    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=3840&q=80'
+                ];
+                wallpapers.forEach(url => {
+                    const thumb = document.createElement('img');
+                    thumb.className = 'wall-thumb';
+                    thumb.src = url;
+                    thumb.alt = 'wallpaper';
+                    thumb.addEventListener('click', () => {
+                        wallpaperData = url;
+                        applyWallpaper(url);
+                        saveWallpaper();
+                        gallery.querySelectorAll('.wall-thumb').forEach(el => el.classList.remove('active'));
+                        thumb.classList.add('active');
+                        showToast('Wallpaper', 'Changed');
+                    });
+                    gallery.appendChild(thumb);
+                });
+                const uploadBtn = c.querySelector('#wallUploadBtn');
+                const fileInput = c.querySelector('#wallInput');
+                uploadBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { wallpaperData = ev.target.result;
+                        applyWallpaper(wallpaperData);
+                        saveWallpaper();
+                        fileInput.value = '';
+                        showToast('Wallpaper', 'Uploaded'); };
+                    reader.readAsDataURL(file);
+                });
+                c.querySelector('#wallReset').addEventListener('click', () => {
+                    wallpaperData = null;
+                    applyWallpaper(null);
+                    saveWallpaper();
+                    gallery.querySelectorAll('.wall-thumb').forEach(el => el.classList.remove('active'));
+                    showToast('Wallpaper', 'Reset to default');
+                });
+                const colorInput = c.querySelector('#accentColor');
+                colorInput.addEventListener('input', () => {
+                    const c2 = colorInput.value;
+                    accentColor = c2;
+                    document.documentElement.style.setProperty('--accent', c2);
+                    saveAccent(c2);
+                    showToast('Accent', 'Color updated');
+                });
+            }
+
+            function renderProxy(c) {
+                c.innerHTML = `
+                    <div class="proxy-bar">
+                        <input id="proxyUrl" placeholder="Search or enter URL" value="DuckDuckGo">
+                        <button id="proxyGo">🔍 Go</button>
+                        <button id="proxyDdg">🦆 DDG</button>
+                        <select id="proxySelect" style="background:rgba(0,0,0,0.4);border:1px solid var(--glass-border);border-radius:30px;padding:6px 14px;color:#fff;">
+                            <option value="allorigins" selected>AllOrigins</option>
+                            <option value="corsproxy">corsproxy.io</option>
+                            <option value="corsanywhere">CORS Anywhere</option>
+                            <option value="lucideproxy">LucideProxy</option>
+                        </select>
+                    </div>
+                    <iframe class="proxy-frame" id="proxyFrame" src="about:blank"></iframe>
+                `;
+                const input = c.querySelector('#proxyUrl');
+                const frame = c.querySelector('#proxyFrame');
+                const go = c.querySelector('#proxyGo');
+                const ddg = c.querySelector('#proxyDdg');
+                const select = c.querySelector('#proxySelect');
+                const proxyMap = {
+                    'allorigins': (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    'corsproxy': (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+                    'corsanywhere': (url) => `https://cors-anywhere.herokuapp.com/${url}`,
+                    'lucideproxy': (url) => `https://cdn.jsdelivr.net/gh/lucideproxy/svg@latest/?url=${encodeURIComponent(url)}`
+                };
+                const loadUrl = (url) => {
+                    let finalUrl = url.trim();
+                    if (!finalUrl) return;
+                    if (!finalUrl.includes('.') && !finalUrl.startsWith('http')) {
+                        finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(finalUrl)}`;
+                    } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                        finalUrl = 'https://' + finalUrl;
+                    }
+                    const proxyFn = proxyMap[select.value] || proxyMap['allorigins'];
+                    const proxied = proxyFn(finalUrl);
+                    frame.src = proxied;
+                    showToast('Proxy', `Loading via ${select.value}...`);
+                };
+                go.addEventListener('click', () => loadUrl(input.value));
+                ddg.addEventListener('click', () => {
+                    input.value = 'DuckDuckGo';
+                    loadUrl('https://duckduckgo.com');
+                });
+                input.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadUrl(input.value); });
+                setTimeout(() => loadUrl('https://duckduckgo.com'), 400);
+            }
+
+            function renderTerminal(c) {
+                // Virtual file system
+                const vfs = {
+                    '/': { type: 'dir', children: { 'home': { type: 'dir', children: {} }, 'usr': { type: 'dir',
+                                children: {} }, 'etc': { type: 'dir', children: {} }, 'tmp': { type: 'dir',
+                                children: {} } } },
+                    '/home': { type: 'dir', children: { 'user': { type: 'dir', children: {} } } },
+                    '/home/user': { type: 'dir', children: { 'Desktop': { type: 'dir', children: {} },
+                            'Documents': { type: 'dir', children: {} }, 'Downloads': { type: 'dir', children: {} } } }
+                };
+                let cwd = '/home/user';
+                const user = 'user';
+                const hostname = 'aether';
+
+                function getNode(path) {
+                    if (path === '/') return vfs['/'];
+                    const parts = path.split('/').filter(Boolean);
+                    let node = vfs['/'];
+                    for (const part of parts) {
+                        if (node.children && node.children[part]) {
+                            node = node.children[part];
+                        } else { return null; }
+                    }
+                    return node;
+                }
+
+                function resolvePath(path) {
+                    if (path.startsWith('/')) return path;
+                    if (path === '.') return cwd;
+                    if (path === '..') {
+                        const parts = cwd.split('/').filter(Boolean);
+                        parts.pop();
+                        return '/' + parts.join('/') || '/';
+                    }
+                    return cwd + (cwd.endsWith('/') ? '' : '/') + path;
+                }
+
+                c.innerHTML = `
+                    <div class="terminal-lines" id="termLines">
+                        <div><span class="prompt">${user}@${hostname}:~$</span> <span style="color:#8aff8a;">Welcome to AetherOS Terminal</span></div>
+                        <div><span class="prompt">${user}@${hostname}:~$</span> <span style="color:#aaa;">Type 'help' for commands</span></div>
+                    </div>
+                    <div class="terminal-input-line">
+                        <span class="prompt">$</span>
+                        <input id="termInput" autofocus>
+                    </div>
+                `;
+                const lines = c.querySelector('#termLines');
+                const input = c.querySelector('#termInput');
+                const history = [];
+                let histIdx = 0;
+
+                function getPrompt() {
+                    const path = cwd === '/home/user' ? '~' : cwd.replace('/home/user', '~');
+                    return `${user}@${hostname}:${path}$`;
+                }
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const cmd = input.value.trim();
+                        if (!cmd) return;
+                        lines.innerHTML += `<div><span class="prompt">${getPrompt()}</span> ${cmd}</div>`;
+                        let output = '';
+                        const parts = cmd.split(' ');
+                        const main = parts[0].toLowerCase();
+                        const args = parts.slice(1);
+
+                        switch (main) {
+                            case 'echo':
+                                output = args.join(' ');
+                                break;
+                            case 'help':
+                                output = 'Commands: echo, date, clear, help, whoami, ls, cd, pwd, mkdir, touch, rm, rmdir, uname';
+                                break;
+                            case 'date':
+                                output = new Date().toString();
+                                break;
+                            case 'clear':
+                                lines.innerHTML = '';
+                                input.value = '';
+                                return;
+                            case 'whoami':
+                                output = user;
+                                break;
+                            case 'uname':
+                                output = 'AetherOS 2.0 (Ultimate)';
+                                break;
+                            case 'pwd':
+                                output = cwd;
+                                break;
+                            case 'ls': {
+                                const target = args[0] || '.';
+                                const path = resolvePath(target);
+                                const node = getNode(path);
+                                if (!node) output = `ls: cannot access '${target}': No such file or directory`;
+                                else if (node.type !== 'dir') output = `${target} is not a directory`;
+                                else output = Object.keys(node.children).join('  ') || '(empty)';
+                                break;
+                            }
+                            case 'cd': {
+                                const target = args[0] || '/';
+                                const path = resolvePath(target);
+                                const node = getNode(path);
+                                if (!node) output = `cd: no such file or directory: ${target}`;
+                                else if (node.type !== 'dir') output = `cd: not a directory: ${target}`;
+                                else cwd = path;
+                                break;
+                            }
+                            case 'mkdir': {
+                                const target = args[0];
+                                if (!target) { output = 'mkdir: missing operand'; break; }
+                                const path = resolvePath(target);
+                                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                                const name = path.substring(path.lastIndexOf('/') + 1);
+                                const parent = getNode(parentPath);
+                                if (!parent) { output =
+                                        `mkdir: cannot create directory '${target}': No such file or directory`; break; }
+                                if (parent.type !== 'dir') { output =
+                                        `mkdir: cannot create directory '${target}': Not a directory`; break; }
+                                if (parent.children[name]) { output =
+                                        `mkdir: cannot create directory '${target}': File exists`; break; }
+                                parent.children[name] = { type: 'dir', children: {} };
+                                output = '';
+                                break;
+                            }
+                            case 'touch': {
+                                const target = args[0];
+                                if (!target) { output = 'touch: missing operand'; break; }
+                                const path = resolvePath(target);
+                                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                                const name = path.substring(path.lastIndexOf('/') + 1);
+                                const parent = getNode(parentPath);
+                                if (!parent) { output = `touch: cannot touch '${target}': No such file or directory`; break; }
+                                if (parent.type !== 'dir') { output = `touch: cannot touch '${target}': Not a directory`; break; }
+                                if (!parent.children[name]) parent.children[name] = { type: 'file', content: '' };
+                                output = '';
+                                break;
+                            }
+                            case 'rm': {
+                                const target = args[0];
+                                if (!target) { output = 'rm: missing operand'; break; }
+                                const path = resolvePath(target);
+                                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                                const name = path.substring(path.lastIndexOf('/') + 1);
+                                const parent = getNode(parentPath);
+                                if (!parent) { output = `rm: cannot remove '${target}': No such file or directory`; break; }
+                                if (parent.type !== 'dir') { output = `rm: cannot remove '${target}': Not a directory`; break; }
+                                if (!parent.children[name]) { output =
+                                        `rm: cannot remove '${target}': No such file or directory`; break; }
+                                delete parent.children[name];
+                                output = '';
+                                break;
+                            }
+                            case 'rmdir': {
+                                const target = args[0];
+                                if (!target) { output = 'rmdir: missing operand'; break; }
+                                const path = resolvePath(target);
+                                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                                const name = path.substring(path.lastIndexOf('/') + 1);
+                                const parent = getNode(parentPath);
+                                if (!parent) { output =
+                                        `rmdir: failed to remove '${target}': No such file or directory`; break; }
+                                if (parent.type !== 'dir') { output =
+                                        `rmdir: failed to remove '${target}': Not a directory`; break; }
+                                if (!parent.children[name]) { output =
+                                        `rmdir: failed to remove '${target}': No such file or directory`; break; }
+                                if (parent.children[name].type !== 'dir') { output =
+                                        `rmdir: failed to remove '${target}': Not a directory`; break; }
+                                if (Object.keys(parent.children[name].children).length > 0) { output =
+                                        `rmdir: failed to remove '${target}': Directory not empty`; break; }
+                                delete parent.children[name];
+                                output = '';
+                                break;
+                            }
+                            default:
+                                output = `Command not found: ${cmd}`;
+                        }
+                        if (output) lines.innerHTML += `<div><span style="color:#aaa;">${output}</span></div>`;
+                        lines.scrollTop = lines.scrollHeight;
+                        input.value = '';
+                        history.push(cmd);
+                        histIdx = history.length;
+                    } else if (e.key === 'ArrowUp') {
+                        if (histIdx > 0) { histIdx--;
+                            input.value = history[histIdx] || ''; }
+                        e.preventDefault();
+                    } else if (e.key === 'ArrowDown') {
+                        if (histIdx < history.length - 1) { histIdx++;
+                            input.value = history[histIdx] || ''; } else { histIdx = history.length;
+                            input.value = ''; }
+                        e.preventDefault();
+                    }
+                });
+                c.addEventListener('click', () => input.focus());
+            }
+
+            function renderMusic(c) {
+                c.innerHTML = `
+                    <div class="music-player">
+                        <div class="cover">🎵</div>
+                        <div style="font-size:22px;font-weight:600;">Now Playing</div>
+                        <div style="color:#aaa;">AetherOS Radio</div>
+                        <div class="controls">
+                            <button id="prev">⏮</button>
+                            <button id="play">▶️</button>
+                            <button id="next">⏭</button>
+                        </div>
+                        <div style="color:#888;font-size:13px;">(Dummy - no actual audio)</div>
+                    </div>
+                `;
+                let playing = false;
+                const playBtn = c.querySelector('#play');
+                playBtn.addEventListener('click', () => {
+                    playing = !playing;
+                    playBtn.textContent = playing ? '⏸' : '▶️';
+                    showToast('Music', playing ? 'Playing' : 'Paused');
+                });
+                c.querySelector('#prev').addEventListener('click', () => showToast('Music', 'Previous (dummy)'));
+                c.querySelector('#next').addEventListener('click', () => showToast('Music', 'Next (dummy)'));
+            }
+
+            function renderAppStore(c) {
+                c.innerHTML = `<div class="appstore-grid" id="appstoreGrid"></div>`;
+                const grid = c.querySelector('#appstoreGrid');
+                allApps.forEach(def => {
+                    const item = document.createElement('div');
+                    item.className = 'appstore-item';
+                    const iconHtml = def.type === 'internal' ?
+                        `<span class="app-icon-big">${def.icon}</span>` :
+                        `<img src="${getFaviconUrl(def.url) || ''}" style="width:48px;height:48px;border-radius:12px;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="app-icon-big" style="display:none;">${def.icon}</span>`;
+                    item.innerHTML = `${iconHtml}<div class="app-name">${def.name}</div><button class="app-btn" data-id="${def.id}">Open</button>`;
+                    item.querySelector('.app-btn').addEventListener('click', (e) => { e.stopPropagation();
+                        openApp(def.id); });
+                    grid.appendChild(item);
+                });
+            }
+
+            function renderExplorer(c) {
+                c.innerHTML = `
+                    <div class="explorer-tree">
+                        <div class="explorer-sidebar">
+                            <div class="folder-item">📁 Desktop</div>
+                            <div class="folder-item">📁 Documents</div>
+                            <div class="folder-item">📁 Downloads</div>
+                            <div class="folder-item">📁 Music</div>
+                            <div class="folder-item">📁 Pictures</div>
+                            <div class="folder-item">📁 Videos</div>
+                        </div>
+                        <div class="explorer-main" id="explorerMain">
+                            <div class="file-item">📄 readme.txt</div>
+                            <div class="file-item">📄 notes.md</div>
+                            <div class="file-item">📁 projects</div>
+                            <div class="file-item">🖼️ wallpaper.png</div>
+                            <div class="file-item">🎵 song.mp3</div>
+                        </div>
+                    </div>
+                `;
+                c.querySelectorAll('.folder-item, .file-item').forEach(el => {
+                    el.addEventListener('click', () => showToast('Explorer', `Selected: ${el.textContent.trim()}`));
+                });
+            }
+
+            function renderWeather(c) {
+                c.innerHTML = `
+                    <div class="weather-display">
+                        <div style="font-size:70px;">🌤️</div>
+                        <div class="temp">24°C</div>
+                        <div class="desc">Partly Cloudy</div>
+                        <div style="color:#888;">Humidity: 65% • Wind: 12 km/h</div>
+                        <div style="color:#aaa;font-size:13px;">(Dummy weather data)</div>
+                    </div>
+                `;
+            }
+
+            function renderSysInfo(c) {
+                c.innerHTML = `
+                    <div class="sysinfo-grid">
+                        <div class="sysinfo-card"><div class="label">OS</div><div class="value">AetherOS 2.0</div></div>
+                        <div class="sysinfo-card"><div class="label">Kernel</div><div class="value">Aether-5.15</div></div>
+                        <div class="sysinfo-card"><div class="label">CPU</div><div class="value">Quantum Core x64</div></div>
+                        <div class="sysinfo-card"><div class="label">Memory</div><div class="value">16 GB (12 GB free)</div></div>
+                        <div class="sysinfo-card"><div class="label">Uptime</div><div class="value" id="uptime">0h 0m</div></div>
+                        <div class="sysinfo-card"><div class="label">Theme</div><div class="value">Dark • Accent ${accentColor}</div></div>
+                    </div>
+                `;
+                let seconds = 0;
+                setInterval(() => {
+                    seconds++;
+                    const h = Math.floor(seconds / 3600);
+                    const m = Math.floor((seconds % 3600) / 60);
+                    const uptimeEl = c.querySelector('#uptime');
+                    if (uptimeEl) uptimeEl.textContent = `${h}h ${m}m`;
+                }, 1000);
+            }
+
+            function renderAetherFlix(c) {
+                c.innerHTML = `
+                    <div class="aetherflix-wrapper">
+                        <div class="netflix-nav">
+                            <div class="brand">AetherFlix</div>
+                            <div class="nav-links">
+                                <a href="#" onclick="document.getElementById('aetherflixIframe').src='https://cineb.best/'; return false;">Home</a>
+                                <a href="#" onclick="document.getElementById('aetherflixIframe').src='https://cineb.best/movies'; return false;">Movies</a>
+                                <a href="#" onclick="document.getElementById('aetherflixIframe').src='https://cineb.best/tv'; return false;">TV Shows</a>
+                                <a href="#" onclick="document.getElementById('aetherflixIframe').src='https://cineb.best/popular'; return false;">Popular</a>
+                            </div>
+                            <div style="flex:1;"></div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <button id="reloadBtn" style="background:#e50914;border:none;color:#fff;padding:4px 16px;border-radius:30px;cursor:pointer;">⟳</button>
+                                <button id="openDirectBtn" style="background:#666;border:none;color:#fff;padding:4px 16px;border-radius:30px;cursor:pointer;">↗ Open</button>
+                            </div>
+                        </div>
+                        <div class="netflix-content">
+                            <iframe id="aetherflixIframe" src="https://cineb.best/" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#aetherflixIframe');
+                const reloadBtn = c.querySelector('#reloadBtn');
+                const openDirectBtn = c.querySelector('#openDirectBtn');
+                reloadBtn.addEventListener('click', () => { iframe.src = 'https://cineb.best/';
+                    showToast('AetherFlix', 'Reloaded'); });
+                openDirectBtn.addEventListener('click', () => { window.open('https://cineb.best/', '_blank'); });
+            }
+
+            function renderBlooket(c) {
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="hackBtn" class="alt-btn">⚡ Inject Hack</button>
+                            <span class="info">📚 Blooket hack (paste in console)</span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="blooketFrame" src="https://www.blooket.com/" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#blooketFrame');
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = 'https://www.blooket.com/';
+                    showToast('Blooket', 'Reloaded'); });
+                c.querySelector('#hackBtn').addEventListener('click', () => {
+                    showToast('Blooket Hack', 'Open console and paste: fetch("https://raw.githubusercontent.com/glixzzy/blooket-hack/main/global.js").then(r=>eval(r.text()))');
+                });
+            }
+
+            function renderKahoot(c) {
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="hackBtn" class="alt-btn">⚡ Inject Hack</button>
+                            <span class="info">🎯 Kahoot hack (paste in console)</span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="kahootFrame" src="https://kahoot.it/" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#kahootFrame');
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = 'https://kahoot.it/';
+                    showToast('Kahoot', 'Reloaded'); });
+                c.querySelector('#hackBtn').addEventListener('click', () => {
+                    showToast('Kahoot Hack', 'Open console and paste: fetch("https://raw.githubusercontent.com/ItzMye/Kahoot-Hack/main/hack.js").then(r=>eval(r.text()))');
+                });
+            }
+
+            function renderGimkit(c) {
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="hackBtn" class="alt-btn">⚡ Inject Hack</button>
+                            <span class="info">⚡ Gimkit hack (paste in console)</span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="gimkitFrame" src="https://www.gimkit.com/" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#gimkitFrame');
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = 'https://www.gimkit.com/';
+                    showToast('Gimkit', 'Reloaded'); });
+                c.querySelector('#hackBtn').addEventListener('click', () => {
+                    showToast('Gimkit Hack', 'Open console and paste: fetch("https://raw.githubusercontent.com/TheRealToxicDev/Gimkit-Hack/main/script.js").then(r=>eval(r.text()))');
+                });
+            }
+
+            function renderRoblox(c) {
+                const nowggUrls = [
+                    'https://now.gg/',
+                    'https://now.gg/apps/roblox-corporation/5349/roblox.html',
+                    'https://now.gg/play/roblox/5349'
+                ];
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="directBtn" class="alt-btn">↗ Open Direct</button>
+                            <button id="altUrlBtn">🔄 Try Alternative</button>
+                            <span class="info">🎮 Roblox via now.gg</span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="robloxFrame" src="${nowggUrls[0]}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#robloxFrame');
+                let urlIndex = 0;
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = nowggUrls[urlIndex];
+                    showToast('Roblox', 'Reloading...'); });
+                c.querySelector('#directBtn').addEventListener('click', () => { window.open(nowggUrls[urlIndex], '_blank'); });
+                c.querySelector('#altUrlBtn').addEventListener('click', () => {
+                    urlIndex = (urlIndex + 1) % nowggUrls.length;
+                    iframe.src = nowggUrls[urlIndex];
+                    showToast('Roblox', `Trying: ${nowggUrls[urlIndex]}`);
+                });
+            }
+
+            function renderXCloud(c) {
+                const xcloudUrl = 'https://cdn.jsdelivr.net/gh/lucideproxy/svg@latest/fairs/3nygomr6/6qb8afw2/aHR0cHM6Ly93d3cueGJveC5jb20vZW4tdXMvcGxheQ?%24rfp=origin&%24io=https%3A%2F%2Fduckduckgo.com';
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="directBtn" class="alt-btn">↗ Open Direct</button>
+                            <span class="info">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Xbox_Logo_2021.svg/64px-Xbox_Logo_2021.svg.png" alt="Xbox Logo" style="height:20px;width:auto;filter:brightness(0) invert(1);">
+                                Xbox Cloud Gaming
+                            </span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="xcloudFrame" src="${xcloudUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#xcloudFrame');
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = xcloudUrl;
+                    showToast('Xbox Cloud', 'Reloading...'); });
+                c.querySelector('#directBtn').addEventListener('click', () => { window.open(xcloudUrl, '_blank'); });
+            }
+
         })();
     </script>
 </body>
