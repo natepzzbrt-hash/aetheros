@@ -89,6 +89,10 @@
         .settings-row .wallpaper-gallery .wall-thumb { width:80px; height:60px; object-fit:cover; border-radius:10px; cursor:pointer; border:2px solid transparent; transition:0.15s; }
         .settings-row .wallpaper-gallery .wall-thumb:hover { border-color:var(--accent); transform:scale(1.05); }
         .settings-row .wallpaper-gallery .wall-thumb.active { border-color:#fff; }
+        .settings-row .url-input-group { display:flex; gap:8px; flex:1; min-width:200px; }
+        .settings-row .url-input-group input { flex:1; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:30px; padding:6px 16px; color:#fff; font-size:13px; }
+        .settings-row .url-input-group input:focus { outline:none; border-color:var(--accent); }
+        .settings-row .url-input-group button { background:var(--accent); border:none; color:#fff; padding:4px 18px; border-radius:30px; cursor:pointer; }
 
         .proxy-bar { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
         .proxy-bar input { flex:1; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:30px; padding:8px 18px; color:#fff; font-size:14px; min-width:150px; }
@@ -225,7 +229,7 @@
         (() => {
             'use strict';
 
-            // ---------- BUILT-IN APPS (including Aether Web) ----------
+            // ---------- BUILT-IN APPS ----------
             const BUILTIN_APPS = [
                 { id: 'calc', name: 'Calculator', icon: '🧮', type: 'internal', internal: 'calculator' },
                 { id: 'notepad', name: 'Notepad', icon: '📝', type: 'internal', internal: 'notepad' },
@@ -465,7 +469,7 @@
                 return me.friends.map(f => profiles.find(p => p.name === f)).filter(Boolean);
             }
 
-            // ---------- MESSAGES (fixed) ----------
+            // ---------- MESSAGES ----------
             function getMessages() {
                 const data = localStorage.getItem(STORAGE_MESSAGES);
                 if (data) {
@@ -1723,41 +1727,60 @@
                         localStorage.removeItem(STORAGE_NOTEPAD); } });
             }
 
-            // ---------- SETTINGS ----------
+            // ---------- SETTINGS (with enhanced wallpaper picker) ----------
             function renderSettings(c) {
+                // Built-in wallpaper gallery (static and animated)
+                const wallpaperGallery = [
+                    { name: 'Space', url: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=3840&q=80' },
+                    { name: 'Forest', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=3840&q=80' },
+                    { name: 'Mountains', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=3840&q=80' },
+                    { name: 'Stars', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=3840&q=80' },
+                    { name: 'Beach', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=3840&q=80' },
+                    { name: 'Sunset', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=3840&q=80' },
+                    { name: 'GIF – Waves', url: 'https://media.giphy.com/media/3o6Zt481isNVuQI1l6/giphy.gif' },
+                    { name: 'GIF – Neon', url: 'https://media.giphy.com/media/xT9IgzoKnwFNmISR8I/giphy.gif' }
+                ];
+
                 c.innerHTML = `
                     <div class="settings-row">
                         <label>Wallpaper</label>
-                        <div class="wallpaper-gallery" id="wallGallery"></div>
-                        <input type="file" id="wallInput" accept="image/*" style="display:none;">
-                        <button id="wallUploadBtn">📁 Upload</button>
-                        <button id="wallReset">Reset</button>
+                        <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
+                            <div class="wallpaper-gallery" id="wallGallery">
+                                ${wallpaperGallery.map(w => `
+                                    <img class="wall-thumb" src="${w.url}" alt="${w.name}" data-url="${w.url}" title="${w.name}" loading="lazy">
+                                `).join('')}
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                                <div class="url-input-group">
+                                    <input type="text" id="wallpaperUrl" placeholder="Image or GIF URL (Pinterest, Imgur, etc.)" />
+                                    <button id="applyUrlBtn">Apply URL</button>
+                                </div>
+                                <input type="file" id="wallInput" accept="image/*" style="display:none;" />
+                                <button id="wallUploadBtn">📁 Upload</button>
+                                <button id="wallReset">Reset</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="settings-row">
                         <label>Accent Color</label>
-                        <input type="color" id="accentColor" value="${accentColor}">
+                        <input type="color" id="accentColor" value="${accentColor}" />
                     </div>
                     <div style="margin-top:12px;color:#888;font-size:13px;">
                         <p>App order is saved automatically. Drag icons to reorder.</p>
                         <p>Notepad content saved locally.</p>
                         <p>Custom apps are stored in your browser.</p>
+                        <p>Wallpaper supports static images and animated GIFs.</p>
                     </div>
                 `;
+
+                // Gallery thumbs
                 const gallery = c.querySelector('#wallGallery');
-                const wallpapers = [
-                    'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=3840&q=80',
-                    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=3840&q=80',
-                    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=3840&q=80',
-                    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=3840&q=80',
-                    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=3840&q=80',
-                    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=3840&q=80'
-                ];
-                wallpapers.forEach(url => {
-                    const thumb = document.createElement('img');
-                    thumb.className = 'wall-thumb';
-                    thumb.src = url;
-                    thumb.alt = 'wallpaper';
+                gallery.querySelectorAll('.wall-thumb').forEach(thumb => {
+                    if (thumb.dataset.url === wallpaperData) {
+                        thumb.classList.add('active');
+                    }
                     thumb.addEventListener('click', () => {
+                        const url = thumb.dataset.url;
                         wallpaperData = url;
                         applyWallpaper(url);
                         saveWallpaper();
@@ -1765,8 +1788,28 @@
                         thumb.classList.add('active');
                         showToast('Wallpaper', 'Changed');
                     });
-                    gallery.appendChild(thumb);
                 });
+
+                // URL input
+                const urlInput = c.querySelector('#wallpaperUrl');
+                const applyUrlBtn = c.querySelector('#applyUrlBtn');
+                applyUrlBtn.addEventListener('click', () => {
+                    const url = urlInput.value.trim();
+                    if (!url) { showToast('Error', 'Enter a valid URL'); return; }
+                    // Validate URL
+                    try { new URL(url); } catch (_) { showToast('Error', 'Invalid URL'); return; }
+                    wallpaperData = url;
+                    applyWallpaper(url);
+                    saveWallpaper();
+                    gallery.querySelectorAll('.wall-thumb').forEach(el => el.classList.remove('active'));
+                    urlInput.value = '';
+                    showToast('Wallpaper', 'Applied from URL');
+                });
+                urlInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') applyUrlBtn.click();
+                });
+
+                // Upload
                 const uploadBtn = c.querySelector('#wallUploadBtn');
                 const fileInput = c.querySelector('#wallInput');
                 uploadBtn.addEventListener('click', () => fileInput.click());
@@ -1774,13 +1817,18 @@
                     const file = e.target.files[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.onload = (ev) => { wallpaperData = ev.target.result;
+                    reader.onload = (ev) => {
+                        wallpaperData = ev.target.result;
                         applyWallpaper(wallpaperData);
                         saveWallpaper();
                         fileInput.value = '';
-                        showToast('Wallpaper', 'Uploaded'); };
+                        gallery.querySelectorAll('.wall-thumb').forEach(el => el.classList.remove('active'));
+                        showToast('Wallpaper', 'Uploaded');
+                    };
                     reader.readAsDataURL(file);
                 });
+
+                // Reset
                 c.querySelector('#wallReset').addEventListener('click', () => {
                     wallpaperData = null;
                     applyWallpaper(null);
@@ -1788,6 +1836,8 @@
                     gallery.querySelectorAll('.wall-thumb').forEach(el => el.classList.remove('active'));
                     showToast('Wallpaper', 'Reset to default');
                 });
+
+                // Accent color
                 const colorInput = c.querySelector('#accentColor');
                 colorInput.addEventListener('input', () => {
                     const c2 = colorInput.value;
@@ -2480,11 +2530,10 @@
                 c.appendChild(container);
             }
 
-            // ---------- AETHER WEB (Spectre Browser) ----------
+            // ---------- AETHER WEB ----------
             function renderAetherWeb(c) {
                 const webUrl = 'https://math.ghostos.workers.dev/spectre/?engine=google&proxy=scramjet&newtab=ghost&home=https%3A%2F%2Fwww.google.com';
 
-                // Add a small toolbar to match the OS style
                 c.innerHTML = `
                     <div style="display:flex;flex-direction:column;height:100%;background:#141414;">
                         <div style="display:flex;align-items:center;padding:4px 12px;background:rgba(0,0,0,0.6);gap:10px;flex-shrink:0;border-bottom:1px solid var(--glass-border);">
@@ -2717,7 +2766,7 @@
                 c.querySelector('#directBtn').addEventListener('click', () => { window.open(xcloudUrl, '_blank'); });
             }
 
-            // ---------- MESSAGES (fixed - with sidebar and real-time updates) ----------
+            // ---------- MESSAGES ----------
             function renderMessages(c) {
                 const user = getCurrentUser();
                 if (!user) {
@@ -2729,7 +2778,6 @@
                 let messages = getMessages();
                 const friends = getFriends();
 
-                // BroadcastChannel for real-time sync
                 if (!window.bc) {
                     window.bc = new BroadcastChannel('aether_chat');
                     window.bc.onmessage = (e) => {
@@ -2745,7 +2793,6 @@
                     const container = document.createElement('div');
                     container.className = 'messages-container';
 
-                    // Sidebar
                     const sidebar = document.createElement('div');
                     sidebar.className = 'messages-sidebar';
                     sidebar.innerHTML = `
@@ -2762,13 +2809,11 @@
                     `;
                     container.appendChild(sidebar);
 
-                    // Chat area
                     const chatArea = document.createElement('div');
                     chatArea.className = 'messages-chat-area';
 
                     const chatMessages = document.createElement('div');
                     chatMessages.className = 'messages-chat';
-                    // Display messages from newest to oldest (reverse)
                     const sortedMessages = [...messages].reverse();
                     sortedMessages.forEach(msg => {
                         const div = document.createElement('div');
@@ -2801,13 +2846,11 @@
                             const friendName = text.substring(5).trim();
                             if (friendName) addFriend(friendName);
                             input.value = '';
-                            // Re-render to update friend list
                             renderChat();
                             return;
                         }
                         sendMessage(text);
                         input.value = '';
-                        // Re-render to update messages
                         renderChat();
                     });
                     inputArea.querySelector('#msgInput').addEventListener('keydown', (e) => {
@@ -2820,14 +2863,12 @@
 
                     c.innerHTML = '';
                     c.appendChild(container);
-                    // Scroll to bottom of chat
                     const chatEl = c.querySelector('.messages-chat');
                     if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
                 }
 
                 renderChat();
 
-                // Listen for messages from other tabs
                 window.bc.onmessage = (e) => {
                     if (e.data.type === 'newMessage') {
                         messages = e.data.messages;
@@ -2866,7 +2907,7 @@
                 loadExternalAppLinks('apps.json');
             }, 500);
 
-            showToast('Welcome', 'AetherOS Ultimate — Aether Web & Messages fixed!');
+            showToast('Welcome', 'AetherOS Ultimate — Enhanced wallpaper picker!');
 
         })();
     </script>
