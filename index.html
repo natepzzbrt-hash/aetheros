@@ -469,7 +469,7 @@
                 return me.friends.map(f => profiles.find(p => p.name === f)).filter(Boolean);
             }
 
-            // ---------- MESSAGES ----------
+            // ---------- MESSAGES (fixed) ----------
             function getMessages() {
                 const data = localStorage.getItem(STORAGE_MESSAGES);
                 if (data) {
@@ -487,7 +487,10 @@
                 const messages = getMessages();
                 messages.push({ sender: currentUser.name, content, timestamp: Date.now() });
                 saveMessages(messages);
+                // Broadcast to other tabs
                 if (window.bc) window.bc.postMessage({ type: 'newMessage', messages });
+                // Trigger storage event for other tabs
+                localStorage.setItem(STORAGE_MESSAGES + '_trigger', Date.now().toString());
             }
 
             // ---------- EXTERNAL APP LOADER ----------
@@ -1727,9 +1730,8 @@
                         localStorage.removeItem(STORAGE_NOTEPAD); } });
             }
 
-            // ---------- SETTINGS (with enhanced wallpaper picker) ----------
+            // ---------- SETTINGS ----------
             function renderSettings(c) {
-                // Built-in wallpaper gallery (static and animated)
                 const wallpaperGallery = [
                     { name: 'Space', url: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=3840&q=80' },
                     { name: 'Forest', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=3840&q=80' },
@@ -1773,7 +1775,6 @@
                     </div>
                 `;
 
-                // Gallery thumbs
                 const gallery = c.querySelector('#wallGallery');
                 gallery.querySelectorAll('.wall-thumb').forEach(thumb => {
                     if (thumb.dataset.url === wallpaperData) {
@@ -1790,13 +1791,11 @@
                     });
                 });
 
-                // URL input
                 const urlInput = c.querySelector('#wallpaperUrl');
                 const applyUrlBtn = c.querySelector('#applyUrlBtn');
                 applyUrlBtn.addEventListener('click', () => {
                     const url = urlInput.value.trim();
                     if (!url) { showToast('Error', 'Enter a valid URL'); return; }
-                    // Validate URL
                     try { new URL(url); } catch (_) { showToast('Error', 'Invalid URL'); return; }
                     wallpaperData = url;
                     applyWallpaper(url);
@@ -1809,7 +1808,6 @@
                     if (e.key === 'Enter') applyUrlBtn.click();
                 });
 
-                // Upload
                 const uploadBtn = c.querySelector('#wallUploadBtn');
                 const fileInput = c.querySelector('#wallInput');
                 uploadBtn.addEventListener('click', () => fileInput.click());
@@ -1828,7 +1826,6 @@
                     reader.readAsDataURL(file);
                 });
 
-                // Reset
                 c.querySelector('#wallReset').addEventListener('click', () => {
                     wallpaperData = null;
                     applyWallpaper(null);
@@ -1837,7 +1834,6 @@
                     showToast('Wallpaper', 'Reset to default');
                 });
 
-                // Accent color
                 const colorInput = c.querySelector('#accentColor');
                 colorInput.addEventListener('input', () => {
                     const c2 = colorInput.value;
@@ -2589,6 +2585,30 @@
                 openDirectBtn.addEventListener('click', () => { window.open('https://cineb.best/', '_blank'); });
             }
 
+            // ---------- XBOX CLOUD (UPDATED URL) ----------
+            function renderXCloud(c) {
+                const xcloudUrl = 'https://cdn.jsdelivr.net/gh/lucideproxy/svg@latest/fairs/3nygomr6/6qb8afw2/aHR0cHM6Ly93d3cueGJveC5jb20vZW4tdXMvcGxheQ?%24rfp=origin&%24io=https%3A%2F%2Fduckduckgo.com';
+                c.innerHTML = `
+                    <div class="game-wrapper">
+                        <div class="game-toolbar">
+                            <button id="reloadBtn">⟳ Reload</button>
+                            <button id="directBtn" class="alt-btn">↗ Open Direct</button>
+                            <span class="info">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Xbox_Logo_2021.svg/64px-Xbox_Logo_2021.svg.png" alt="Xbox Logo" style="height:20px;width:auto;filter:brightness(0) invert(1);">
+                                Xbox Cloud Gaming
+                            </span>
+                        </div>
+                        <div class="game-frame">
+                            <iframe id="xcloudFrame" src="${xcloudUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                `;
+                const iframe = c.querySelector('#xcloudFrame');
+                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = xcloudUrl;
+                    showToast('Xbox Cloud', 'Reloading...'); });
+                c.querySelector('#directBtn').addEventListener('click', () => { window.open(xcloudUrl, '_blank'); });
+            }
+
             // ---------- OTHER APPS ----------
             function renderExplorer(c) {
                 c.innerHTML = `
@@ -2648,7 +2668,7 @@
                 }, 1000);
             }
 
-            // ----- GAME APPS -----
+            // ----- GAME APPS (unchanged) -----
             function renderBlooket(c) {
                 c.innerHTML = `
                     <div class="game-wrapper">
@@ -2743,30 +2763,7 @@
                 });
             }
 
-            function renderXCloud(c) {
-                const xcloudUrl = 'https://cdn.jsdelivr.net/gh/lucideproxy/svg@latest/fairs/3nygomr6/6qb8afw2/aHR0cHM6Ly93d3cueGJveC5jb20vZW4tdXMvcGxheQ?%24rfp=origin&%24io=https%3A%2F%2Fduckduckgo.com';
-                c.innerHTML = `
-                    <div class="game-wrapper">
-                        <div class="game-toolbar">
-                            <button id="reloadBtn">⟳ Reload</button>
-                            <button id="directBtn" class="alt-btn">↗ Open Direct</button>
-                            <span class="info">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Xbox_Logo_2021.svg/64px-Xbox_Logo_2021.svg.png" alt="Xbox Logo" style="height:20px;width:auto;filter:brightness(0) invert(1);">
-                                Xbox Cloud Gaming
-                            </span>
-                        </div>
-                        <div class="game-frame">
-                            <iframe id="xcloudFrame" src="${xcloudUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" allowfullscreen></iframe>
-                        </div>
-                    </div>
-                `;
-                const iframe = c.querySelector('#xcloudFrame');
-                c.querySelector('#reloadBtn').addEventListener('click', () => { iframe.src = xcloudUrl;
-                    showToast('Xbox Cloud', 'Reloading...'); });
-                c.querySelector('#directBtn').addEventListener('click', () => { window.open(xcloudUrl, '_blank'); });
-            }
-
-            // ---------- MESSAGES ----------
+            // ---------- MESSAGES (fixed with real-time sync) ----------
             function renderMessages(c) {
                 const user = getCurrentUser();
                 if (!user) {
@@ -2778,16 +2775,27 @@
                 let messages = getMessages();
                 const friends = getFriends();
 
+                // BroadcastChannel for real-time sync across tabs
                 if (!window.bc) {
                     window.bc = new BroadcastChannel('aether_chat');
-                    window.bc.onmessage = (e) => {
-                        if (e.data.type === 'newMessage') {
-                            messages = e.data.messages;
-                            saveMessages(messages);
-                            renderChat();
-                        }
-                    };
                 }
+                // Always set the onmessage handler
+                window.bc.onmessage = (e) => {
+                    if (e.data.type === 'newMessage') {
+                        messages = e.data.messages;
+                        saveMessages(messages);
+                        renderChat();
+                    }
+                };
+
+                // Also listen for storage events (fallback for cross-tab sync)
+                const storageHandler = (e) => {
+                    if (e.key === STORAGE_MESSAGES || e.key === STORAGE_MESSAGES + '_trigger') {
+                        messages = getMessages();
+                        renderChat();
+                    }
+                };
+                window.addEventListener('storage', storageHandler);
 
                 function renderChat() {
                     const container = document.createElement('div');
@@ -2815,20 +2823,25 @@
                     const chatMessages = document.createElement('div');
                     chatMessages.className = 'messages-chat';
                     const sortedMessages = [...messages].reverse();
-                    sortedMessages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = 'msg';
-                        const sender = msg.sender;
-                        const profile = getProfiles().find(p => p.name === sender);
-                        const avatar = profile ? profile.avatar : '👤';
-                        div.innerHTML = `
-                            <span>${avatar}</span>
-                            <span class="sender">${sender}</span>
-                            <span class="content">${msg.content}</span>
-                            <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-                        `;
-                        chatMessages.appendChild(div);
-                    });
+                    if (sortedMessages.length === 0) {
+                        chatMessages.innerHTML =
+                            '<div style="color:#888;text-align:center;padding:20px;">No messages yet. Say hello!</div>';
+                    } else {
+                        sortedMessages.forEach(msg => {
+                            const div = document.createElement('div');
+                            div.className = 'msg';
+                            const sender = msg.sender;
+                            const profile = getProfiles().find(p => p.name === sender);
+                            const avatar = profile ? profile.avatar : '👤';
+                            div.innerHTML = `
+                                <span>${avatar}</span>
+                                <span class="sender">${sender}</span>
+                                <span class="content">${msg.content}</span>
+                                <span class="time">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            `;
+                            chatMessages.appendChild(div);
+                        });
+                    }
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                     chatArea.appendChild(chatMessages);
 
@@ -2846,11 +2859,16 @@
                             const friendName = text.substring(5).trim();
                             if (friendName) addFriend(friendName);
                             input.value = '';
+                            // Refresh friends list
+                            friends.length = 0;
+                            friends.push(...getFriends());
                             renderChat();
                             return;
                         }
                         sendMessage(text);
                         input.value = '';
+                        // Immediately update local messages and re-render
+                        messages = getMessages();
                         renderChat();
                     });
                     inputArea.querySelector('#msgInput').addEventListener('keydown', (e) => {
@@ -2869,13 +2887,8 @@
 
                 renderChat();
 
-                window.bc.onmessage = (e) => {
-                    if (e.data.type === 'newMessage') {
-                        messages = e.data.messages;
-                        saveMessages(messages);
-                        renderChat();
-                    }
-                };
+                // Clean up storage listener when window is closed (optional)
+                // We'll keep it for this session.
             }
 
             // ---------- CLOCK ----------
@@ -2907,7 +2920,7 @@
                 loadExternalAppLinks('apps.json');
             }, 500);
 
-            showToast('Welcome', 'AetherOS Ultimate — Enhanced wallpaper picker!');
+            showToast('Welcome', 'AetherOS — Messages now real‑time!');
 
         })();
     </script>
